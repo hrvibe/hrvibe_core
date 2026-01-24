@@ -1,0 +1,236 @@
+{
+  "id": "128088543",
+  "premium": false,
+  "billing_type": {
+    "id": "standard",
+    "name": "Стандарт"
+  },
+  "can_upgrade_billing_type": true,
+  "relations": [],
+  "name": "Юрисконсульт",
+  "insider_interview": null,
+  "response_letter_required": false,
+  "area": {
+    "id": "1",
+    "name": "Москва",
+    "url": "https://api.hh.ru/areas/1"
+  },
+  "salary": {
+    "from": 170000,
+    "to": null,
+    "currency": "RUR",
+    "gross": true
+  },
+  "salary_range": {
+    "from": 170000,
+    "to": null,
+    "currency": "RUR",
+    "gross": true,
+    "mode": {
+      "id": "MONTH",
+      "name": "За месяц"
+    },
+    "frequency": null
+  },
+  "type": {
+    "id": "open",
+    "name": "Открытая"
+  },
+  "address": {
+    "city": "Москва",
+    "street": "Ленинградский проспект",
+    "building": "37",
+    "lat": 55.792108,
+    "lng": 37.540757,
+    "description": null,
+    "raw": "Москва, Ленинградский проспект, 37",
+    "metro": {
+      "station_name": "Аэропорт",
+      "line_name": "Замоскворецкая",
+      "station_id": "2.12",
+      "line_id": "2",
+      "lat": 55.800441,
+      "lng": 37.530477
+    },
+    "metro_stations": [
+      {
+        "station_name": "Аэропорт",
+        "line_name": "Замоскворецкая",
+        "station_id": "2.12",
+        "line_id": "2",
+        "lat": 55.800441,
+        "lng": 37.530477
+      },
+      {
+        "station_name": "Динамо",
+        "line_name": "Замоскворецкая",
+        "station_id": "2.34",
+        "line_id": "2",
+        "lat": 55.789704,
+        "lng": 37.558212
+      },
+      {
+        "station_name": "Петровский парк",
+        "line_name": "Большая кольцевая линия",
+        "station_id": "97.599",
+        "line_id": "97",
+        "lat": 55.79233,
+        "lng": 37.55952
+      },
+      {
+        "station_name": "ЦСКА",
+        "line_name": "Большая кольцевая линия",
+        "station_id": "97.600",
+        "line_id": "97",
+        "lat": 55.78643,
+        "lng": 37.53502
+      }
+    ],
+    "id": "20802875",
+    "show_metro_only": false
+  },
+  "allow_messages": true,
+  "experience": {
+    "id": "between3And6",
+    "name": "От 3 до 6 лет"
+  },
+  "schedule": {
+    "id": "fullDay",
+    "name": "Полный день"
+  },
+  "employment": {
+    "id": "full",
+    "name": "Полная занятость"
+  },
+  "department": null,
+  "show_contacts": false,
+  "contacts": null,
+  "description": "<p><strong>О нас:</strong><br />Крупный российский производитель лекарственных препаратов ищет в свою команду <strong>Юрисконсульта</strong>.</p> <p>Мы предлагаем интересные задачи и стабильную работу в перспективной отрасли.</p> <p><strong>Ключевые задачи:</strong></p> <ul> <li> <p>Вести полный цикл договорной работы: от проверки до регистрации.</p> </li> <li> <p>Работа с реестром договоров и дебиторской задолженностью.</p> </li> <li> <p>Подготовка юридической документации (доверенности, официальные письма, претензии).</p> </li> <li> <p>Взаимодействие с госорганами и контрагентами.</p> </li> <li> <p>Защита интересов компании в арбитражных судах (составлять иски, представлять компанию).</p> </li> <li> <p>Консультировать коллег из других отделов по юридическим вопросам.</p> </li> </ul> <p><strong>Ваш профиль:</strong></p> <ul> <li> <p>Опыт работы юристом от 3-х лет.</p> </li> <li> <p>Прочные знания в области договорного и корпоративного права.</p> </li> <li> <p>Навыки ведения арбитражных дел.</p> </li> <li> <p>Высокий уровень ответственности и внимания к деталям.</p> </li> </ul> <p><strong>Условия:</strong></p> <ul> <li> <p>Работа в штате по ТК РФ, испытательный срок 3 месяца.</p> </li> <li> <p>Оклад от 170 000 руб. на испытательный срок (оклад после испытательного срока обсуждается).</p> </li> <li> <p>График работы 5/2 с 9:00 до 18:00.</p> </li> <li> <p>Работа в современном офисе в шаговой доступности от м. ЦСК/Динамо/Аэропорт.</p> </li> <li> <p>Комфортная рабочая атмосфера в коллективе.</p> </li> <li> <p>ДМС после года работы.</p> </li> </ul>",
+  "branded_description": null,
+  "vacancy_constructor_template": null,
+  "key_skills": [
+    {
+      "name": "Юридическая грамотность"
+    },
+    {
+      "name": "Составление процессуальных документов"
+    },
+    {
+      "name": "Договорная работа"
+    },
+    {
+      "name": "Представительство в суде"
+    },
+    {
+      "name": "Составление договоров"
+    },
+    {
+      "name": "Консультирование по правовым вопросам"
+    }
+  ],
+  "auto_response": {
+    "accept_auto_response": false
+  },
+  "accept_handicapped": false,
+  "accept_kids": false,
+  "age_restriction": null,
+  "archived": false,
+  "response_url": null,
+  "specializations": [],
+  "professional_roles": [
+    {
+      "id": "145",
+      "name": "Юрисконсульт"
+    }
+  ],
+  "code": null,
+  "hidden": false,
+  "quick_responses_allowed": false,
+  "branded_template": null,
+  "driver_license_types": [],
+  "accept_incomplete_resumes": true,
+  "employer": {
+    "id": "9163396",
+    "name": "Кадры Онлайн",
+    "url": "https://api.hh.ru/employers/9163396",
+    "alternate_url": "https://hh.ru/employer/9163396",
+    "logo_urls": {
+      "original": "https://img.hhcdn.ru/employer-logo-original/1394247.png",
+      "90": "https://img.hhcdn.ru/employer-logo/7196771.png",
+      "240": "https://img.hhcdn.ru/employer-logo/7196772.png"
+    },
+    "vacancies_url": "https://api.hh.ru/vacancies?employer_id=9163396",
+    "country_id": 1,
+    "accredited_it_employer": false,
+    "trusted": true
+  },
+  "published_at": "2025-11-26T14:06:56+0300",
+  "created_at": "2025-11-26T14:06:56+0300",
+  "initial_created_at": "2025-11-26T14:06:56+0300",
+  "negotiations_url": null,
+  "suitable_resumes_url": null,
+  "apply_alternate_url": "https://hh.ru/applicant/vacancy_response?vacancyId=128088543",
+  "has_test": false,
+  "test": null,
+  "alternate_url": "https://hh.ru/vacancy/128088543",
+  "counters": {
+    "responses": 205,
+    "views": 544,
+    "invitations": 0,
+    "unread_responses": 205,
+    "resumes_in_progress": 0,
+    "invitations_and_responses": 205
+  },
+  "expires_at": "2025-12-26T14:06:56+0300",
+  "manager": {
+    "id": "16022429"
+  },
+  "response_notifications": false,
+  "working_days": [],
+  "working_time_intervals": [],
+  "working_time_modes": [],
+  "accept_temporary": false,
+  "languages": [],
+  "approved": true,
+  "employment_form": {
+    "id": "FULL",
+    "name": "Полная"
+  },
+  "fly_in_fly_out_duration": [],
+  "internship": false,
+  "night_shifts": false,
+  "work_format": [
+    {
+      "id": "ON_SITE",
+      "name": "На месте работодателя"
+    }
+  ],
+  "work_schedule_by_days": [
+    {
+      "id": "FIVE_ON_TWO_OFF",
+      "name": "5/2"
+    }
+  ],
+  "working_hours": [
+    {
+      "id": "HOURS_8",
+      "name": "8 часов"
+    }
+  ],
+  "show_logo_in_search": null,
+  "closed_for_applicants": false,
+  "previous_id": null,
+  "vacancy_properties": {
+    "appearance": {
+      "title": "Стандарт"
+    },
+    "properties": [
+      {
+        "property_type": "HH_STANDARD",
+        "parameters": [],
+        "end_time": "2025-12-26T14:06:56.872+03:00",
+        "start_time": "2025-11-26T14:06:56.872+03:00"
+      }
+    ]
+  }
+}
