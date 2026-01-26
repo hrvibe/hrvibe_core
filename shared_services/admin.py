@@ -27,7 +27,12 @@ from shared_services.db_service import (
     is_boolean_field_true_in_db,
     update_record_in_db,
     get_column_value_in_db,
-    get_column_value_by_field
+    get_column_value_by_field,
+    update_column_value_by_field
+)
+
+from shared_services.data_service import (
+    get_data_subdirectory_path
 )
 
 from database import Managers, Vacancies, Negotiations, Base, SessionLocal
@@ -46,40 +51,14 @@ from manager_bot.manager_bot import send_message_to_admin
 logger = logging.getLogger(__name__)
 
 
-async def admin_get_users_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #TAGS: [admin]
-    """
-    Admin command to list all user IDs from user records.
-    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
-    """
-
-    try:
-        # ----- IDENTIFY USER and pull required data from records -----
-
-        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_get_users_command: started. User_id: {bot_user_id}")
-        
-        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
+async def _is_user_admin(bot_user_id: str) -> bool:
 
         admin_id = os.getenv("ADMIN_ID", "")
         if not admin_id or bot_user_id != admin_id:
-            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
-            return
-
-        # ----- SEND LIST OF USERS IDs from records -----
-
-        user_ids = get_list_of_users_from_records()
-
-        await send_message_to_user(update, context, text=f"📋 List of users: {user_ids}")
-    
-    except Exception as e:
-        logger.error(f"admin_get_users_command: Failed to execute admin_get_list_of_users command: {e}", exc_info=True)        # Send notification to admin about the error
-        if context.application:
-            await send_message_to_admin(
-                application=context.application,
-                text=f"⚠️ Error admin_get_users_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
-            )
+            logger.error(f"_is_user_admin: unauthorized user {bot_user_id} sent admin command")
+            return False
+        logger.info(f"_is_user_admin: authorized user {bot_user_id} sent admin command")
+        return True
 
 
 async def admin_anazlyze_sourcing_criterais_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -90,18 +69,18 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
+    log_info_msg = "admin_anazlyze_sourcing_criterais_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_anazlyze_sourcing_criterais_command: started. User_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: start")
 
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -115,11 +94,12 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
                     # Check if vacancy has description received
                     if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="description_recieved"):
                         # Import here to avoid circular dependency
+                        logger.debug(f"{log_info_msg}: call manager_bot command")
                         from manager_bot.manager_bot import define_sourcing_criterias_triggered_by_admin_command
                         await define_sourcing_criterias_triggered_by_admin_command(vacancy_id=vacancy_id)
                         await send_message_to_user(update, context, text=f"Task for analysing sourcing criterias is in task_queue for vacancy {vacancy_id}.")
                     else:
-                        raise ValueError(f"Vacancy {vacancy_id} does not have vacancy description received.")     
+                        raise ValueError(f"{log_info_msg}: Vacancy {vacancy_id} does not have vacancy description received.")     
                 else:
                     raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
             else:
@@ -128,12 +108,12 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
             raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
     
     except Exception as e:
-        logger.error(f"admin_anazlyze_sourcing_criterais_command: Failed to execute command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_anazlyze_sourcing_criterais_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -145,18 +125,18 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
+    log_info_msg = "admin_send_sourcing_criterais_to_user_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_send_sourcing_criterais_to_user_command: started. User_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: start")
 
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -171,6 +151,7 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
                     # Check if vacancy has sourcing criterias received
                     if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="sourcing_criterias_recieved"):
                         # Import here to avoid circular dependency
+                        logger.debug(f"{log_info_msg}: call manager_bot command")
                         from manager_bot.manager_bot import send_to_user_sourcing_criterias_triggered_by_admin_command
                         await send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id=vacancy_id, application=context.application)
                         await send_message_to_user(update, context, text=f"Sent sourcing criteria for vacancy {vacancy_id} to user. Waiting for feedback.")
@@ -184,12 +165,12 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
             raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
     
     except Exception as e:
-        logger.error(f"admin_send_sourcing_criterais_to_user_command: Failed: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_send_sourcing_criterais_to_user_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -202,18 +183,18 @@ async def admin_send_tg_link_and_change_employer_state_to_applicants_command(upd
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
+    log_info_msg = "admin_send_tg_link_and_change_employer_state_to_applicants_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: started. User_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: start")
 
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -224,29 +205,27 @@ async def admin_send_tg_link_and_change_employer_state_to_applicants_command(upd
             if vacancy_id:
                 # Verify that the vacancy exists
                 if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
-                    # Check if vacancy has description received
-                    if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="description_recieved"):
-                        # Query Negotiations table for records matching criteria
-                        db = SessionLocal()
-                        try:
-                            negotiations = db.query(Negotiations).filter(
-                                Negotiations.vacancy_id == vacancy_id,
-                                Negotiations.link_to_tg_bot_sent == False
-                            ).all()
-                            list_of_negotiation_ids = [negotiation.id for negotiation in negotiations]
-                        except Exception as e:
-                            logger.error(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: Error querying Negotiations table: {e}", exc_info=True)
-                            raise
-                        finally:
-                            db.close()
+                    logger.debug(f"{log_info_msg}: fetch list of negotiations to process")
+                    # Query Negotiations table for records matching criteria
+                    db = SessionLocal()
+                    try:
+                        negotiations = db.query(Negotiations).filter(
+                            Negotiations.vacancy_id == vacancy_id,
+                            Negotiations.link_to_tg_bot_sent == False
+                        ).all()
+                        list_of_negotiation_ids = [negotiation.id for negotiation in negotiations]
+                    except Exception as e:
+                        logger.error(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: Error querying Negotiations table: {e}", exc_info=True)
+                        raise
+                    finally:
+                        db.close()
 
-                        # Import here to avoid circular dependency
-                        from manager_bot.manager_bot import send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command
-                        for negotiation_id in list_of_negotiation_ids:
-                            await send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command(negotiation_id=negotiation_id)
-                        await send_message_to_user(update, context, text=f"Tasks for sending Telegram link and changing employer state to applicants are in task_queue for vacancy {vacancy_id}. Num of negotiations to process: {len(list_of_negotiation_ids)}")
-                    else:
-                        raise ValueError(f"Vacancy {vacancy_id} does not have vacancy description received.")     
+                    # Import here to avoid circular dependency
+                    logger.debug(f"{log_info_msg}: call manager_bot command")
+                    from manager_bot.manager_bot import send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command
+                    for negotiation_id in list_of_negotiation_ids:
+                        await send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command(negotiation_id=negotiation_id)
+                    await send_message_to_user(update, context, text=f"Tasks for sending Telegram link and changing employer state to applicants are in task_queue for vacancy {vacancy_id}. Num of negotiations to process: {len(list_of_negotiation_ids)}")    
                 else:
                     raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
             else:
@@ -255,37 +234,36 @@ async def admin_send_tg_link_and_change_employer_state_to_applicants_command(upd
             raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
 
     except Exception as e:
-        logger.error(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: Failed to execute command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_send_tg_link_and_change_employer_state_to_applicants_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
 
-
-async def admin_update_negotiations_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def admin_get_new_applicant_videos_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     #TAGS: [admin]
     """
-    Admin command to update negotiations for specific vacancy.
-    Usage: /command_name [vacancy_id]
+    Admin command to check new applicant videos for a specific vacancy.
+    Usage: /command_name <vacancy_id>
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
+
+    log_info_msg = "admin_get_new_applicant_videos_command"
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_update_negotiations_command: started. User_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: start")
 
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -296,191 +274,107 @@ async def admin_update_negotiations_command(update: Update, context: ContextType
             if vacancy_id:
                 # Verify that the vacancy exists
                 if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
-                    
-                    # Import here to avoid circular dependency
-                    from manager_bot.manager_bot import source_negotiations_triggered_by_admin_command
-                    from shared_services.constants import EMPLOYER_STATE_RESPONSE
-                    
-                    # Fetch negotiations collection (saves to file)
-                    await source_negotiations_triggered_by_admin_command(vacancy_id=vacancy_id)
-                    await send_message_to_user(update, context, text=f"Negotiations collection updated and parsed to DB for vacancy {vacancy_id}.")
+                    video_dir_path = get_data_subdirectory_path(subdirectory_name="videos")
+                    if video_dir_path is None:
+                        raise ValueError(f"{log_info_msg}: Video directory path not found.")
+                    list_of_video_files = [
+                        file_name
+                        for file_name in os.listdir(video_dir_path)
+                        if file_name.lower().endswith(".mp4")
+                        and file_name.startswith("negotiation_id_")
+                    ]
+                    if len(list_of_video_files) == 0:
+                        await send_message_to_user(update, context, text=f"No new applicant videos found for vacancy {vacancy_id}.")
+                        logger.info(f"{log_info_msg}: No new applicant videos found.")
+                        return
+                
+                    output_text_negotiation_id = ""
+                    output_text_path = ""
+
+                    for video_file in list_of_video_files:
+                        negotiation_id = video_file.split("_")[2]
+                        if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
+                            update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_received", new_value=True)
+                            update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_path", new_value=video_file)
+                            output_text_negotiation_id += f"{negotiation_id}\n"
+                        else:
+                            output_text_negotiation_id += f"Negotiation {negotiation_id} not found in database.\n"
+
+                    for video_file in list_of_video_files:
+                        file_path = os.path.join(video_dir_path, video_file)
+                        output_text_path += f"{file_path}\n"
+
+                    send_message_to_admin(application=context.application, text=f"New applicant videos found for vacancy {vacancy_id}.\nNum of videos: {len(list_of_video_files)}.\nNotification IDs: {output_text_negotiation_id}.\nPaths: {output_text_path}")
+                    logger.info(f"{log_info_msg}: New applicant videos found. Num of videos: {len(list_of_video_files)}. Notification IDs: {output_text_negotiation_id}.")
+                    return
                 else:
-                    raise ValueError(f"Vacancy {vacancy_id} not found in database.")
+                    raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
             else:
                 raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
         else:
             raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
-    
+
     except Exception as e:
-        logger.error(f"admin_update_negotiations_command: Failed to execute command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_update_negotiations_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
-async def admin_get_fresh_resumes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+async def admin_analyze_resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     #TAGS: [admin]
     """
-    Admin command to get fresh resumes for all users.
+    Admin command to analyze resume for a specific negotiation.
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
+
+    log_info_msg = "admin_analyze_resume_command"
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_get_fresh_resumes_command: started. User_id: {bot_user_id}")
-        
+        logger.info(f"{log_info_msg}: start")
+
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
 
-        target_user_id = None
+        negotiation_id = None
         if context.args and len(context.args) == 1:
-            target_user_id = context.args[0]
-            if target_user_id:
-                """if is_user_in_records(record_id=target_user_id):"""
-                if is_value_in_db(db_model=Managers, field_name="id", value=target_user_id):
-                    if is_vacany_data_enough_for_resume_analysis(user_id=target_user_id):
-                        # Import here to avoid circular dependency
-                        from manager_bot.manager_bot import source_resumes_triggered_by_admin_command
-                        await source_resumes_triggered_by_admin_command(bot_user_id=target_user_id)
-                        await send_message_to_user(update, context, text=f"Fresh resumes collected for user {target_user_id}.")
-                    else:
-                        raise ValueError(f"User {target_user_id} does not have enough vacancy data for resume analysis.")
+            negotiation_id = context.args[0]
+            if negotiation_id:
+                if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
+                    # Import here to avoid circular dependency
+                    logger.debug(f"{log_info_msg}: call manager_bot command")
+                    from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command
+                    await source_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
+                    await analyze_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
+                    await send_message_to_user(update, context, text=f"Resume analysis is done for negotiation {negotiation_id}.")
                 else:
-                    raise ValueError(f"User {target_user_id} not found in records.")
+                    raise ValueError(f"Negotiation {negotiation_id} not found in database.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <negotiation_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <negotiation_id>")
 
     except Exception as e:
-        logger.error(f"admin_get_fresh_resumes_command: Failed to execute command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_get_fresh_resumes_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
-
-async def admin_anazlyze_resumes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #TAGS: [admin]
-    """
-    Admin command to analyze fresh resumes for all users.
-    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
-    """
-
-    try:
-        # ----- IDENTIFY USER and pull required data from records -----
-
-        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_anazlyze_resumes_command: started. User_id: {bot_user_id}")
-        
-        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
-
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
-            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
-            return
-
-        # ----- PARSE COMMAND ARGUMENTS -----
-
-        target_user_id = None
-        if context.args and len(context.args) == 1:
-            target_user_id = context.args[0]
-            if target_user_id:
-                """if is_user_in_records(record_id=target_user_id):"""
-                if is_value_in_db(db_model=Managers, field_name="id", value=target_user_id):
-                    if is_vacany_data_enough_for_resume_analysis(user_id=target_user_id):
-                        await send_message_to_user(update, context, text=f"Start creating tasks for analysis of the fresh resumes for user {target_user_id}.")
-                        # Import here to avoid circular dependency
-                        from manager_bot.manager_bot import analyze_resume_triggered_by_admin_command
-                        await analyze_resume_triggered_by_admin_command(bot_user_id=target_user_id)
-                        await send_message_to_user(update, context, text=f"Analysis of fresh resumes is done for user {target_user_id}.")
-                    else:
-                        raise ValueError(f"User {target_user_id} does not have enough vacancy data for resume analysis.")
-                else:
-                    raise ValueError(f"User {target_user_id} not found in records.")
-            else:
-                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
-        else:
-            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
-    
-    except Exception as e:
-        logger.error(f"admin_anazlyze_resumes_command: Failed to execute command: {e}", exc_info=True)
-        # Send notification to admin about the error
-        if context.application:
-            await send_message_to_admin(
-                application=context.application,
-                text=f"⚠️ Error admin_anazlyze_resumes_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
-            )
-
-
-async def admin_update_resume_records_with_applicants_video_status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #TAGS: [admin]
-    """
-    Admin command to update resume records with fresh videos from applicants for all users.
-    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
-    """
-
-    try:
-        # ----- IDENTIFY USER and pull required data from records -----
-
-        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_update_resume_records_with_applicants_video_status_command: started. User_id: {bot_user_id}")
-
-        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
-
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
-            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
-            return
-
-        # ----- PARSE COMMAND ARGUMENTS -----
-
-        target_user_id = None
-        if context.args and len(context.args) == 1:
-            target_user_id = context.args[0]
-            if target_user_id:
-                """if is_user_in_records(record_id=target_user_id):"""
-                if is_value_in_db(db_model=Managers, field_name="id", value=target_user_id):
-                    if is_vacany_data_enough_for_resume_analysis(user_id=target_user_id):
-                        target_user_vacancy_id = get_target_vacancy_id_from_records(record_id=target_user_id)
-                        # Import here to avoid circular dependency
-                        from manager_bot.manager_bot import update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command
-                        await update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command(bot_user_id=target_user_id, vacancy_id=target_user_vacancy_id)
-                        await send_message_to_user(update, context, text=f"Resume records updated with fresh videos from applicants for user {target_user_id}.")
-                    else:
-                        raise ValueError(f"User {target_user_id} does not have enough vacancy data for resume analysis.")
-                else:
-                    raise ValueError(f"User {target_user_id} not found in records.")
-            else:
-                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
-        else:
-            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
-
-    
-    except Exception as e:
-        logger.error(f"admin_update_resume_records_with_applicants_video_status_command: Failed to execute command: {e}", exc_info=True)
-        # Send notification to admin about the error
-        if context.application:
-            await send_message_to_admin(
-                application=context.application,
-                text=f"⚠️ Error admin_update_resume_records_with_applicants_video_status_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
-            ) 
 
 
 async def admin_recommend_resumes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -490,18 +384,18 @@ async def admin_recommend_resumes_command(update: Update, context: ContextTypes.
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
+    log_info_msg = "admin_recommend_resumes_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_recommend_resumes_command: started. User_id: {bot_user_id}")
-        
+        logger.info(f"{log_info_msg}: start")
+
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -514,6 +408,7 @@ async def admin_recommend_resumes_command(update: Update, context: ContextTypes.
                 if is_value_in_db(db_model=Managers, field_name="id", value=target_user_id):
                     if is_vacany_data_enough_for_resume_analysis(user_id=target_user_id):
                         # Import here to avoid circular dependency
+                        logger.debug(f"{log_info_msg}: call manager_bot command")
                         from manager_bot.manager_bot import recommend_resumes_triggered_by_admin_command
                         await recommend_resumes_triggered_by_admin_command(bot_user_id=target_user_id, application=context.application)
                         await send_message_to_user(update, context, text=f"Recommending resumes is triggered for user {target_user_id}.")
@@ -527,13 +422,15 @@ async def admin_recommend_resumes_command(update: Update, context: ContextTypes.
             raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
     
     except Exception as e:
-        logger.error(f"admin_recommend_resumes_command: Failed to execute command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_recommend_resumes_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
+
+
 
 
 async def admin_send_message_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -545,18 +442,18 @@ async def admin_send_message_command(update: Update, context: ContextTypes.DEFAU
     Sends notification to admin if fails
     """
     
+    log_info_msg = "admin_send_message_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_send_message_command triggered by user_id: {bot_user_id}")
-        
+        logger.info(f"{log_info_msg}: start")
+
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -589,23 +486,23 @@ async def admin_send_message_command(update: Update, context: ContextTypes.DEFAU
                     text=message_text
                 )
                 await send_message_to_user(update, context, text=f"✅ Сообщение отправлено пользователю {target_user_id}:\n'{message_text}'")
-                logger.info(f"Admin {bot_user_id} sent message to user {target_user_id}: {message_text}")
+                logger.info(f"{log_info_msg}: Admin {bot_user_id} sent message to user {target_user_id}: {message_text}")
             except Exception as send_err:
                 error_msg = f"❌ Не удалось отправить сообщение пользователю {target_user_id}: {send_err}"
                 await send_message_to_user(update, context, text=error_msg)
-                logger.error(f"Failed to send message to user {target_user_id}: {send_err}", exc_info=True)
+                logger.error(f"{log_info_msg}: Failed to send message to user {target_user_id}: {send_err}", exc_info=True)
                 raise
         else:
-            raise ValueError("Application or bot instance not available")
+            raise ValueError(f"Application or bot instance not available")
     
     except Exception as e:
-        logger.error(f"Failed to execute admin_send_message_to_user command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error executing admin_send_message_to_user command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -619,18 +516,18 @@ async def admin_pull_file_command(update: Update, context: ContextTypes.DEFAULT_
     Sends the file as a document to the admin chat.
     """
     
+    log_info_msg = "admin_pull_file_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_pull_file_command: started. User_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: start")
         
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -671,18 +568,18 @@ async def admin_pull_file_command(update: Update, context: ContextTypes.DEFAULT_
                         chat_id=chat_id,
                         document=InputFile(file, filename=file_name)
                     )
-                logger.info(f"admin_pull_file_command: file '{file_path}' sent to user {bot_user_id}")
+                logger.info(f"{log_info_msg}: file '{file_path}' sent to user {bot_user_id}")
             except Exception as send_err:
                 raise TelegramError(f"Failed to send file '{file_path}': {send_err}")
         else:
             raise RuntimeError("Application or bot instance not available")
     except Exception as e:
-        logger.error(f"admin_pull_file_command: Failed to execute: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_pull_file_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -695,19 +592,19 @@ async def admin_push_file_command(update: Update, context: ContextTypes.DEFAULT_
     After calling the command, send the file (json, txt, or mp4) as a document.
     The file will be saved to the specified location.
     """
+
+    log_info_msg = "admin_push_file_command"
     
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_push_file_command: started. User_id: {bot_user_id}")
-        
+        logger.info(f"{log_info_msg}: start")
+
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
 
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -742,16 +639,16 @@ async def admin_push_file_command(update: Update, context: ContextTypes.DEFAULT_
                 text=f"📤 Ready to receive file.\nTarget path: `{file_path_str}`\n\nPlease send the file as a document (json, txt, or mp4).",
                 parse_mode=ParseMode.MARKDOWN
             )
-            logger.info(f"admin_push_file_command: Waiting for file to upload to '{file_path}' for user {bot_user_id}")
+            logger.info(f"{log_info_msg}: Waiting for file to upload to '{file_path}' for user {bot_user_id}")
         else:
             raise RuntimeError("Application or bot instance not available")
     except Exception as e:
-        logger.error(f"admin_push_file_command: Failed to execute: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_push_file_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -761,73 +658,74 @@ async def admin_push_file_document_handler(update: Update, context: ContextTypes
     Handler for document uploads when admin_push_file_command is waiting for a file.
     Saves the received document to the path specified in admin_push_file_command.
     """
+
+    log_info_msg = "admin_push_file_document_handler"
     
     try:
         # Log that handler was triggered
-        logger.info("admin_push_file_document_handler: Handler triggered")
-        
+        logger.info(f"{log_info_msg}: start")
+
         # Check if message has document
         has_document = update.message and update.message.document is not None
-        logger.debug(f"admin_push_file_document_handler: Message has document: {has_document}")
+        logger.debug(f"{log_info_msg}: Message has document: {has_document}")
         if has_document:
             doc_name = update.message.document.file_name or "unknown"
-            logger.debug(f"admin_push_file_document_handler: Document name: {doc_name}")
+            logger.debug(f"{log_info_msg}: Document name: {doc_name}")
         
         # ----- CHECK IF WE ARE WAITING FOR FILE UPLOAD -----
 
         is_waiting = context.user_data.get("admin_push_file_waiting", False)
-        logger.debug(f"admin_push_file_document_handler: Checking if waiting for file upload: {is_waiting}")
-        logger.debug(f"admin_push_file_document_handler: Context user_data keys: {list(context.user_data.keys())}")
+        logger.debug(f"{log_info_msg}: Checking if waiting for file upload: {is_waiting}")
+        logger.debug(f"{log_info_msg}: Context user_data keys: {list(context.user_data.keys())}")
         
         if not is_waiting:
-            logger.debug("admin_push_file_document_handler: Not waiting for file upload, ignoring document")
+            logger.debug(f"{log_info_msg}: Not waiting for file upload, ignoring document")
             return  # Not waiting for file upload, ignore this document
         
-        logger.info("admin_push_file_document_handler: started. Waiting for file upload.")
+        logger.info(f"{log_info_msg}: started. Waiting for file upload.")
         
         # ----- IDENTIFY USER -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.debug(f"admin_push_file_document_handler: User identified. User_id: {bot_user_id}")
+        logger.debug(f"{log_info_msg}: User identified. User_id: {bot_user_id}")
         
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
 
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
-            logger.debug(f"admin_push_file_document_handler: User {bot_user_id} is not admin, ignoring document")
+        if not await _is_user_admin(bot_user_id=bot_user_id):
+            logger.debug(f"{log_info_msg}: User {bot_user_id} is not admin, ignoring document")
             return  # Not admin, ignore
 
         # ----- GET FILE PATH FROM CONTEXT -----
 
         file_path_str = context.user_data.get("admin_push_file_path")
         if not file_path_str:
-            logger.error("admin_push_file_document_handler: File path not found in context")
+            logger.error(f"{log_info_msg}: File path not found in context")
             await update.message.reply_text("❌ Error: File path not found. Please run /command_name command again.")
             context.user_data.pop("admin_push_file_waiting", None)
             context.user_data.pop("admin_push_file_path", None)
             return
 
         file_path = Path(file_path_str)
-        logger.debug(f"admin_push_file_document_handler: Target file path: {file_path}")
+        logger.debug(f"{log_info_msg}: Target file path: {file_path}")
 
         # ----- GET DOCUMENT FROM MESSAGE -----
 
         if not update.message or not update.message.document:
-            logger.warning("admin_push_file_document_handler: No document found in message")
+            logger.warning(f"{log_info_msg}: No document found in message")
             await update.message.reply_text("❌ Error: No document found in the message. Please send a file as a document.")
             return
 
         document = update.message.document
         file_name = document.file_name or file_path.name
-        logger.info(f"admin_push_file_document_handler: Received document '{file_name}' (file_id: {document.file_id})")
+        logger.info(f"{log_info_msg}: Received document '{file_name}' (file_id: {document.file_id})")
 
         # ----- VALIDATE FILE EXTENSION -----
 
         valid_extensions = [".json", ".txt", ".mp4", ".log"]
         file_extension = Path(file_name).suffix.lower()
-        logger.debug(f"admin_push_file_document_handler: File extension: {file_extension}")
+        logger.debug(f"{log_info_msg}: File extension: {file_extension}")
         if file_extension not in valid_extensions:
-            logger.warning(f"admin_push_file_document_handler: Invalid file extension '{file_extension}' for file '{file_name}'")
+            logger.warning(f"{log_info_msg}: Invalid file extension '{file_extension}' for file '{file_name}'")
             await update.message.reply_text(
                 f"❌ Invalid file extension: {file_extension}\nValid extensions: {', '.join(valid_extensions)}"
             )
@@ -838,25 +736,25 @@ async def admin_push_file_document_handler(update: Update, context: ContextTypes
         if not context.application or not context.application.bot:
             raise RuntimeError("Application or bot instance not available")
 
-        logger.info(f"admin_push_file_document_handler: Downloading file '{file_name}' from Telegram")
+        logger.info(f"{log_info_msg}: Downloading file '{file_name}' from Telegram")
         file = await context.application.bot.get_file(document.file_id)
-        logger.debug(f"admin_push_file_document_handler: File object retrieved from Telegram. File size: {getattr(document, 'file_size', 'unknown')} bytes")
+        logger.debug(f"{log_info_msg}: File object retrieved from Telegram. File size: {getattr(document, 'file_size', 'unknown')} bytes")
         
         # ----- SAVE FILE TO SPECIFIED LOCATION -----
 
         # Create directory if it doesn't exist
-        logger.debug(f"admin_push_file_document_handler: Creating directory if needed: {file_path.parent}")
+        logger.debug(f"{log_info_msg}: Creating directory if needed: {file_path.parent}")
         file_path.parent.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"admin_push_file_document_handler: Directory ensured: {file_path.parent}")
+        logger.debug(f"{log_info_msg}: Directory ensured: {file_path.parent}")
         
         # Download and save file
-        logger.info(f"admin_push_file_document_handler: Saving file to '{file_path}'")
+        logger.info(f"{log_info_msg}: Saving file to '{file_path}'")
         await file.download_to_drive(custom_path=str(file_path))
-        logger.info(f"admin_push_file_document_handler: File '{file_name}' saved to '{file_path}' for user {bot_user_id}")
+        logger.info(f"{log_info_msg}: File '{file_name}' saved to '{file_path}' for user {bot_user_id}")
 
         # ----- CLEAN UP CONTEXT -----
 
-        logger.debug("admin_push_file_document_handler: Cleaning up context data")
+        logger.debug(f"{log_info_msg}: Cleaning up context data")
         context.user_data.pop("admin_push_file_waiting", None)
         context.user_data.pop("admin_push_file_path", None)
 
@@ -866,28 +764,28 @@ async def admin_push_file_document_handler(update: Update, context: ContextTypes
             f"✅ File successfully uploaded!\nPath: `{file_path.relative_to(Path(os.getenv('USERS_DATA_DIR', './users_data')))}`",
             parse_mode=ParseMode.MARKDOWN
         )
-        logger.info(f"admin_push_file_document_handler: Success confirmation sent to user {bot_user_id}")
+        logger.info(f"{log_info_msg}: Success confirmation sent to user {bot_user_id}")
 
     except Exception as e:
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id")) if update else "unknown"
-        logger.error(f"admin_push_file_document_handler: Failed to execute for user {bot_user_id}: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute for user {bot_user_id}: {e}", exc_info=True)
         
         # Clean up context on error
-        logger.debug("admin_push_file_document_handler: Cleaning up context data due to error")
+        logger.debug(f"{log_info_msg}: Cleaning up context data due to error")
         context.user_data.pop("admin_push_file_waiting", None)
         context.user_data.pop("admin_push_file_path", None)
         
         # Send error message to admin
         if update.message:
-            logger.debug(f"admin_push_file_document_handler: Sending error message to user {bot_user_id}")
+            logger.debug(f"{log_info_msg}: Sending error message to user {bot_user_id}")
             await update.message.reply_text(f"❌ Error uploading file: {e}")
         
         # Send notification to admin about the error
         if context.application:
-            logger.debug(f"admin_push_file_document_handler: Sending admin notification about error")
+            logger.debug(f"{log_info_msg}: Sending admin notification about error")
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_push_file_document_handler: {e}\nAdmin ID: {bot_user_id}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id}"
             )
 
 
@@ -955,18 +853,18 @@ async def admin_update_db_command(update: Update, context: ContextTypes.DEFAULT_
     Note: For JSON columns, you can use either Python dict syntax (single quotes) or JSON format (double quotes).
     """
     
+    log_info_msg = "admin_update_db_command"
+
     try:
         # ----- IDENTIFY USER and pull required data from records -----
         
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"admin_update_db_command: started. User_id: {bot_user_id}")
-        
+        logger.info(f"{log_info_msg}: start")
+
         #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
         
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
+        if not await _is_user_admin(bot_user_id=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
             return
         
         # ----- PARSE COMMAND ARGUMENTS -----
@@ -1060,10 +958,10 @@ async def admin_update_db_command(update: Update, context: ContextTypes.DEFAULT_
                      f"Старое значение: {current_value}\n"
                      f"Новое значение: {updated_value}"
             )
-            logger.info(f"admin_update_db_command: Successfully updated {table_name}.{column_name} for record {record_id}")
+            logger.info(f"{log_info_msg}: Successfully updated {table_name}.{column_name} for record {record_id}")
             
         except Exception as e:
-            logger.error(f"admin_update_db_command: Failed to update record: {e}", exc_info=True)
+            logger.error(f"{log_info_msg}: Failed to update record: {e}", exc_info=True)
             await send_message_to_user(
                 update, 
                 context, 
@@ -1072,10 +970,10 @@ async def admin_update_db_command(update: Update, context: ContextTypes.DEFAULT_
             raise
     
     except Exception as e:
-        logger.error(f"admin_update_db_command: Failed to execute command: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error admin_update_db_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )

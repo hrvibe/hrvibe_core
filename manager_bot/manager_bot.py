@@ -1621,182 +1621,84 @@ async def change_employer_state_command(negotiation_id: str) -> None:
         logger.error(f"change_employer_state_command: Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
 
 
-
-
-
-
-
-async def update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command(bot_user_id: str, vacancy_id: str) -> None:
+async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
-    """Update resume records with fresh videos from applicants directory.
-    Sends notification to admin if fails"""
-
-    logger.info(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: started. user_id: {bot_user_id}")
+    """Sources resumes from hh."""
+    func_name = "source_resume_triggered_by_admin_command"
+    log_info_msg = f"{func_name}. Arguments {negotiation_id}"
     
+    logger.info(f"{log_info_msg}: started")
+
     try:
-        # ----- PREPARE PATHS to video files -----
-
-        """video_from_applicants_dir = get_directory_for_video_from_applicants(bot_user_id=bot_user_id, vacancy_id=vacancy_id) # ValueError raised if fails"""
-        video_from_applicants_dir = get_data_subdirectory_path(subdirectory_name="videos")# ValueError raised if fails
-        all_video_paths_list = list(video_from_applicants_dir.glob("*.mp4"))
-        fresh_videos_list = []
-        success_count = 0
-        fail_count = 0
-        
-        for video_path in all_video_paths_list:
-            try:
-                # Parse video path to get resume ID. Video shall have the following structure: 
-                # - type #1: applicant_{applicant_user_id}_resume_{resume_id}_time_{timestamp}_note.mp4
-                # - type #2: - applicant_{applicant_user_id}_resume_{resume_id}_time_{timestamp}.mp4
-                resume_id = video_path.stem.split("_")[3]
-                logger.debug(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Found applicant video. Video path: {video_path} / Resume ID: {resume_id}")
-                # If video not recorded, update list and update resume records
-                """if not is_applicant_video_recorded(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_id=resume_id):"""
-                if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="vacancy_video_received"):
-                    fresh_videos_list.append(resume_id)
-                    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_video_received", value="yes") # ValueError raised if fails
-                    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_video_path", value=str(video_path)) # ValueError raised if fails
-                    success_count += 1
-            except Exception as e:
-                logger.error(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Failed to process video {video_path} for user {bot_user_id}: {e}", exc_info=True)
-                fail_count += 1
-                continue
-        
-        logger.info(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Completed for user_id: {bot_user_id}. Success: {success_count}, Failed: {fail_count}, Total: {len(all_video_paths_list)}")
-    
-    except Exception as e:
-        logger.error(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Failed. user_id {bot_user_id}: {e}", exc_info=True)
-        raise
-
-
-async def source_resumes_triggered_by_admin_command(bot_user_id: str) -> None:
-    # TAGS: [resume_related]
-    """Sources resumes from negotiations."""
-    
-    try:
-        logger.info(f"source_resumes_triggered_by_admin_command: started. User_id: {bot_user_id}")
         
         # ----- IDENTIFY USER and pull required data from records -----
+        err_msg = None
+        vacancy_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="vacancy_id")
+        if vacancy_id is None: err_msg = f"vacancy_id"
+        manager_id = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="manager_id")
+        if manager_id is None: err_msg = f"manager_id"
+        access_token = get_column_value_by_field(db_model=Managers, search_field_name="id", search_value=manager_id, target_field_name="access_token")
+        if access_token is None: err_msg = f"access_token"            
+        resume_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_id")
+        if resume_id is None: err_msg = f"resume_id"
+        if err_msg:
+            raise ValueError(f"{log_info_msg}: {err_msg} not found in database")
+
         
-        access_token = get_access_token_from_records(bot_user_id=bot_user_id)
-        target_vacancy_id = get_target_vacancy_id_from_records(record_id=bot_user_id)
-        target_employer_state = EMPLOYER_STATE_RESPONSE
-        
-        # ----- CHECK IF NEGOTIATIONS COLLECTION file exists, otherwise trigger source negotiations command -----
-        
-        """if not is_negotiations_collection_file_exists(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, target_employer_state=target_employer_state):"""
-        if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="negotiations_collection_recieved"):
-            raise ValueError(f"source_resumes_triggered_by_admin_command: Negotiations collection with status {target_employer_state} file does not exist for user {bot_user_id} and vacancy {target_vacancy_id}")
-
-        # ----- CHECK IF RESUME RECORDS file exists, otherwise trigger source resumes command -----
-        """
-        if not is_resume_records_file_exists(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id):
-            create_resumes_directory_and_subdirectories(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_subdirectories=RESUME_SUBDIRECTORIES_LIST)
-            create_resume_records_file(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id)
-        """
-        # ----- SOURCE FRESH RESUMES IDs from negotiations collection -----
-
-        #Build path to the file for the collection of negotiations data
-        vacancy_data_dir = get_vacancy_directory(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id)
-        negotiations_collection_file_path = vacancy_data_dir / f"negotiations_collections_{target_employer_state}.json"
-        #Open negotiations collection data file and get resumes IDs
-        with open(negotiations_collection_file_path, "r", encoding="utf-8") as f:
-            negotiations_collection_data = json.load(f)
-
-        fresh_resume_id_and_negotiation_id_dict = {} # used to update resume records file with negotiation_id
-        
-        for negotiations_collection_item in negotiations_collection_data["items"]:
-            negotiation_id = negotiations_collection_item["id"]
-            resume_id = negotiations_collection_item["resume"]["id"]
-            """if not is_resume_id_exists_in_resume_records(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id):"""
-            if not is_value_in_db(db_model=Negotiations, field_name="id", value=resume_id):
-                fresh_resume_id_and_negotiation_id_dict[resume_id] = negotiation_id
-        
-        logger.debug(f"source_resumes_triggered_by_admin_command: fresh resume ID and negotiation ID dictionary: {fresh_resume_id_and_negotiation_id_dict}")
-
-        #if not fresh_resume_ids_from_negotiations_collection:
-        if not fresh_resume_id_and_negotiation_id_dict:
-            raise ValueError(f"source_resumes_triggered_by_admin_command: No fresh resumes found in negotiations collection for user {bot_user_id} and vacancy {target_vacancy_id}")
-
-        # ----- PREPARE RESUME directory for 'new' resumes -----
-
-        resume_data_dir = get_resume_directory(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id)
-        #Get path to the directory for new resumes
-        new_resume_data_dir = Path(resume_data_dir) / "new"
-
         # ----- DOWNLOAD RESUMES from HH.ru to "new" resumes -----
 
         #Download resumes from HH.ru and save to file
-        success_count = 0
-        fail_count = 0
         
-        #for resume_id in fresh_resume_ids_from_negotiations_collection:
-        for resume_id, negotiation_id in fresh_resume_id_and_negotiation_id_dict.items():
-            try:
-                resume_file_path = new_resume_data_dir / f"resume_{resume_id}.json"
-                resume_data = get_resume_info(access_token=access_token, resume_id=resume_id)
-                # Write resume data JSON into resume_file_path
-                create_json_file_with_dictionary_content(file_path=str(resume_file_path), content_to_write=resume_data)
-                logger.debug(f"source_resumes_triggered_by_admin_command: successfully downloaded resume {resume_id} to file: {resume_file_path}")
+        resume_data = get_resume_info(access_token=access_token, resume_id=resume_id)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_json", new_value=resume_data)
+        logger.debug(f"{log_info_msg}: downloaded resume data to database")
 
-                # ----- UPDATE RESUME_RECORDS file with new resume_record_id and contact data -----
+        # ----- ENRICH RESUME_RECORDS file with resume data -----
 
-                #Create new resume record in resume records file with specific structure
-                create_record_for_new_resume_id_in_resume_records(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id)
-                logger.debug(f"source_resumes_triggered_by_admin_command: successfully created new resume record in resume records file with resume_record_id: {resume_id}")
+        # Update resume records with new resume data
+        first_name = resume_data.get("first_name", "")
+        last_name = resume_data.get("last_name", "")
         
-                # ----- ENRICH RESUME_RECORDS file with resume data -----
-
-                # Update resume records with new resume data
-                first_name = resume_data.get("first_name", "")
-                last_name = resume_data.get("last_name", "")
-                
-                # Safely extract phone and email from contact array
-                phone = ""
-                email = ""
-                contacts_list = resume_data.get("contact", [])
-                
-                for contact in contacts_list:
-                    # Handle both "value" and "contact_value" keys
-                    contact_data = contact.get("contact_value") or contact.get("value")
-                    
-                    # Skip if contact_data is None or not a string
-                    if not isinstance(contact_data, str):
-                        continue
-                    
-                    # Filter email by '@' sign
-                    if "@" in contact_data:
-                        email = contact_data
-                    elif not phone:
-                        # If it's a string but not email, assume it's phone (if phone not set yet)
-                        phone = contact_data
-                
-                # Log warning if contact data is missing
-                if not phone:
-                    logger.warning(f"source_resumes_triggered_by_admin_command: No phone found for resume {resume_id}")
-                if not email:
-                    logger.debug(f"source_resumes_triggered_by_admin_command: No email found for resume {resume_id}")
-
-                update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id, key="negotiation_id", value=negotiation_id) # ValueError raised if fails
-                update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id, key="first_name", value=first_name) # ValueError raised if fails
-                update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id, key="last_name", value=last_name) # ValueError raised if fails
-                update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id, key="phone", value=phone) # ValueError raised if fails
-                update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id, key="email", value=email) # ValueError raised if fails
-                logger.debug(f"source_resumes_triggered_by_admin_command: successfully updated resume records file with new resume_record_id: {resume_id}")
-                success_count += 1
-            except Exception as e:
-                logger.error(f"source_resumes_triggered_by_admin_command: Failed to process resume {resume_id} for user {bot_user_id}: {e}", exc_info=True)
-                fail_count += 1
+        # Safely extract phone and email from contact array
+        phone = ""
+        email = ""
+        contacts_list = resume_data.get("contact", [])
+        
+        for contact in contacts_list:
+            # Handle both "value" and "contact_value" keys
+            contact_data = contact.get("contact_value") or contact.get("value")
+            
+            # Skip if contact_data is None or not a string
+            if not isinstance(contact_data, str):
                 continue
+            
+            # Filter email by '@' sign
+            if "@" in contact_data:
+                email = contact_data
+            elif not phone:
+                # If it's a string but not email, assume it's phone (if phone not set yet)
+                phone = contact_data
+        
+        # Log warning if contact data is missing
+        if not phone:
+            logger.warning(f"{log_info_msg}: No phone found in resume data")
+        if not email:
+            logger.debug(f"{log_info_msg}: No email found in resume data")
 
-        logger.info(f"source_resumes_triggered_by_admin_command: Completed for user_id: {bot_user_id}. Success: {success_count}, Failed: {fail_count}, Total: {len(fresh_resume_id_and_negotiation_id_dict.keys())}")
-    
+
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_first_name", new_value=first_name)    
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_last_name", new_value=last_name)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_phone", new_value=phone)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_email", new_value=email)
+
+        logger.debug(f"{log_info_msg}: updated resume details in database")
+ 
     except Exception as e:
-        logger.error(f"source_resumes_triggered_by_admin_command: Failed to source resumes for user_id {bot_user_id}: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         raise
 
 
-async def analyze_resume_triggered_by_admin_command(bot_user_id: str) -> None:
+async def analyze_resume_triggered_by_admin_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
     """Analyzes resume with AI. 
     Sorts resumes into "passed" or "failed" directories based on the final score. 
@@ -1804,96 +1706,70 @@ async def analyze_resume_triggered_by_admin_command(bot_user_id: str) -> None:
     Does not trigger any other commands once done.
     """
     
+    func_name = "analyze_resume_triggered_by_admin_command"
+    log_info_msg = f"{func_name}. Arguments {negotiation_id}"
+    
+    logger.info(f"{log_info_msg}: started")
+
     try:
-        logger.info(f"analyze_resume_triggered_by_admin_command: started. User_id: {bot_user_id}")
-
-        # ----- IDENTIFY USER and pull required data from records -----
         
-        target_vacancy_id = get_target_vacancy_id_from_records(record_id=bot_user_id)
+        # ----- IDENTIFY USER and pull required data from records -----
+        err_msg = None
+        vacancy_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="vacancy_id")
+        if vacancy_id is None: err_msg = f"vacancy_id"
+        manager_id = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="manager_id")
+        if manager_id is None: err_msg = f"manager_id"
+        access_token = get_column_value_by_field(db_model=Managers, search_field_name="id", search_value=manager_id, target_field_name="access_token")
+        if access_token is None: err_msg = f"access_token"            
+        resume_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_id")
+        if resume_id is None: err_msg = f"resume_id"
+        
+        resume_json = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_json")
+        if resume_json is None: err_msg = f"resume_json"
+        vacancy_description = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="description_json")
+        if vacancy_description is None: err_msg = f"vacancy_description"
+        sourcing_criterias = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="sourcing_criterias_json")
+        if sourcing_criterias is None: err_msg = f"sourcing_criterias"
 
-        # ----- PREPARE paths and files for AI analysis -----
-
-        #Get files paths for AI analysis
-        vacancy_data_dir = get_vacancy_directory(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id)
-        vacancy_description_file_path = vacancy_data_dir / "vacancy_description.json"
-        sourcing_criterias_file_path = vacancy_data_dir / "sourcing_criterias.json"
-        resume_analysis_prompt_file_path = Path(PROMPT_DIR) / "for_resume.txt"
-        resume_data_dir = get_resume_directory(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id)
-        new_resume_data_path = Path(resume_data_dir) / "new"
-        passed_resume_data_path = Path(resume_data_dir) / "passed"
-        failed_resume_data_path = Path(resume_data_dir) / "failed"
-
-        # Load inputs for AI analysis
-        with open(vacancy_description_file_path, "r", encoding="utf-8") as f:
-            vacancy_description = json.load(f)
-        with open(sourcing_criterias_file_path, "r", encoding="utf-8") as f:
-            sourcing_criterias = json.load(f)
-        with open(resume_analysis_prompt_file_path, "r", encoding="utf-8") as f:
-            resume_analysis_prompt = f.read() 
+        if err_msg:
+            raise ValueError(f"{log_info_msg}: {err_msg} not found in database")
 
         # ----- QUEUE RESUMES for AI ANALYSIS -----
-
-        # Add resumes to AI analysis queue
-        new_resume_data_path.mkdir(parents=True, exist_ok=True)
-        new_resume_json_paths_list = list(new_resume_data_path.glob("*.json"))
-        num_of_new_resumes = len(new_resume_json_paths_list)
-        logger.debug(f"Total resumes: {num_of_new_resumes} in directory {new_resume_data_path}")
-        queued_resumes = 0
-        failed_resumes = 0
         
-        # Open each resume file and add AI analysis task to queue
-        for resume_json_path in new_resume_json_paths_list:
-            try:
-                resume_id = resume_json_path.stem.split("_")[1]
-                with open(resume_json_path, "r", encoding="utf-8") as rf:
-                    resume_json = json.load(rf)
-                
-                # Add AI analysis task to queue
-                await ai_task_queue.put(
-                    resume_analysis_from_ai_to_user_sort_resume,
-                    bot_user_id,
-                    target_vacancy_id,
-                    vacancy_description,
-                    sourcing_criterias,
-                    resume_id,
-                    resume_json_path,
-                    resume_json,
-                    resume_analysis_prompt,
-                    passed_resume_data_path,
-                    failed_resume_data_path,
-                    task_id=f"resume_analysis_{bot_user_id}_{target_vacancy_id}_{resume_id}"
-                )
-                queued_resumes += 1
-                logger.info(f"Added resume {resume_id} to analysis queue. Total queued: {queued_resumes} out of {num_of_new_resumes}")
-            except Exception as e:
-                logger.error(f"Failed to queue resume analysis for '{resume_json_path}': {e}", exc_info=True)
-                failed_resumes += 1
-                continue
-
-        # ----- COMMUNICATE RESULT of QUEUING RESUMES -----
-        logger.info(f"analyze_resume_triggered_by_admin_command: Completed for user_id: {bot_user_id}. Success: {queued_resumes}, Failed: {failed_resumes}, Total: {num_of_new_resumes}")
-    
+        # Add AI analysis task to queue
+        await ai_task_queue.put(
+            resume_analysis_from_ai_to_user_sort_resume,
+            negotiation_id,
+            vacancy_description,
+            sourcing_criterias,
+            resume_id,
+            resume_json,
+            task_id=f"resume_analysis_{negotiation_id}"
+        )
+        logger.info(f"{log_info_msg}: Added resume to analysis queue.")
     except Exception as e:
-        logger.error(f"analyze_resume_triggered_by_admin_command: Failed. user_id {bot_user_id}: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to queue resume analysis: {e}", exc_info=True)
         raise
+   
 
 
 async def resume_analysis_from_ai_to_user_sort_resume(
-    bot_user_id: str,
-    target_vacancy_id: str,
+    negotiation_id: str,
     vacancy_description: dict,
     sourcing_criterias: dict,
-    resume_id: str,
-    resume_json_path: Path,
     resume_json: dict,
     resume_analysis_prompt: str,
-    passed_resume_data_path: Path,
-    failed_resume_data_path: Path,
     ) -> None:
     """
     Wrapper function to process resume analysis result.
     This function is executed through TaskQueue.
     """
+
+    func_name = "resume_analysis_from_ai_to_user_sort_resume"
+    log_info_msg = f"{func_name}. Arguments: {negotiation_id}"
+    
+    logger.info(f"{log_info_msg}: started")
+
     try:
         # Call AI analyzer
         ai_analysis_result = analyze_resume_with_ai(
@@ -1904,47 +1780,24 @@ async def resume_analysis_from_ai_to_user_sort_resume(
         )
         
         # Update resume records with AI analysis results
-        update_resume_record_with_top_level_key(
-            bot_user_id=bot_user_id,
-            vacancy_id=target_vacancy_id,
-            resume_record_id=resume_id,
-            key="ai_analysis",
-            value=ai_analysis_result
-        )
-        # If cannot update resume records, ValueError is raised from method: update_resume_record_with_top_level_key()
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_analysis", new_value=ai_analysis_result)
+        logger.debug(f"{log_info_msg}: updated resume ai analysis in database")
 
-        # Send message to applicant
-        """
-        await send_message_to_applicant_command(bot_user_id=bot_user_id, resume_id=resume_id)
-        """
-        
-        # Change employer state
-        await change_employer_state_command(bot_user_id=bot_user_id, resume_id=resume_id)
-        
         # Sort resume based on final score
-        resume_final_score = int(ai_analysis_result.get("final_score", 0))
-        if resume_final_score >= RESUME_PASSED_SCORE:
-            shutil.move(resume_json_path, passed_resume_data_path)
-            update_resume_record_with_top_level_key(
-                bot_user_id=bot_user_id,
-                vacancy_id=target_vacancy_id,
-                resume_record_id=resume_id,
-                key="resume_sorting_status",
-                value="passed"
-            )
-            # If cannot update resume records, ValueError is raised from method: update_resume_record_with_top_level_key()
+        resume_ai_score = int(ai_analysis_result.get("final_score", 0))
+        if resume_ai_score >= RESUME_PASSED_SCORE:
+            new_status = "passed"
         else:
-            shutil.move(resume_json_path, failed_resume_data_path)
-            update_resume_record_with_top_level_key(
-                bot_user_id=bot_user_id,
-                vacancy_id=target_vacancy_id,
-                resume_record_id=resume_id,
-                key="resume_sorting_status",
-                value="failed"
-            )
-            # If cannot update resume records, ValueError is raised from method: update_resume_record_with_top_level_key()
+            new_status = "failed"
+
+        resume_ai_score_str = str(resume_ai_score)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_sorting_status", new_value=new_status)
+        logger.debug(f"{log_info_msg}: updated resume sorting status in database")
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_score", new_value=resume_ai_score_str)
+        logger.debug(f"{log_info_msg}: updated resume ai score in database")
+
     except Exception as e:
-        logger.error(f"Failed to process resume analysis for {resume_id}: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         raise
 
 
