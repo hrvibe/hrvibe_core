@@ -120,12 +120,12 @@ def create_oauth_link(state: str) -> str:
     return auth_link
 
 
-def create_tg_bot_link_for_applicant(bot_user_id: str, vacancy_id: str, resume_id: str) -> str:
+def create_tg_bot_link_for_applicant(negotiation_id: str) -> str:
     """Create Telegram bot link for applicant to start the bot. TAGS: [create_data]
     When the user taps it, Telegram sends your bot /start <payload>
     The payload is read from message.from.id (Telegram user_id) and the <payload> in the same update and persist the mapping.
     Example: https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={bot_user_id}_{vacancy_id}_{resume_id}"""
-    payload = f"{bot_user_id}_{vacancy_id}_{resume_id}"
+    payload = f"{negotiation_id}"
     return f"https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={payload}"
 
 # ****** METHODS with TAGS: [get_data] ******

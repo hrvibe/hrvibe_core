@@ -1553,6 +1553,120 @@ async def parse_negotiations_collection_to_db(vacancy_id: str, negotiations_json
         raise
 
 
+async def send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command(negotiation_id: str) -> None:
+    # TAGS: [resume_related]
+    """Sources negotiations collection."""
+    
+    try:
+        logger.info(f"send_tg_link_to_applicants_triggered_by_admin_command: started. negotiation_id: {negotiation_id}")
+
+        send_message_to_applicant_command(negotiation_id=negotiation_id)
+        change_employer_state_command(negotiation_id=negotiation_id)
+        
+
+        logger.info(f"send_tg_link_to_applicants_triggered_by_admin_command: successfully completed for negotiation_id: {negotiation_id}")
+    except Exception as e:
+        logger.error(f"send_tg_link_to_applicants_triggered_by_admin_command: Failed to send message to applicant for negotiation_id {negotiation_id}: {e}", exc_info=True)
+        raise
+
+
+async def send_message_to_applicant_command(negotiation_id: str) -> None:
+    # TAGS: [resume_related]
+    """Sends message to applicant. Triggers 'change_employer_state_command'."""
+    
+    logger.info(f"send_message_to_applicant_command: started. negotiation_id: {negotiation_id}")
+
+    # ----- IDENTIFY USER and pull required data from records -----
+    
+    vacancy_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="vacancy_id")
+    manager_id = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="manager_id")
+    access_token = get_column_value_by_field(db_model=Managers, search_field_name="id", search_value=manager_id, target_field_name="access_token")
+
+    tg_link = create_tg_bot_link_for_applicant(negotiation_id=negotiation_id)
+    negotiation_message_text = APPLICANT_MESSAGE_TEXT_WITHOUT_LINK + f"{tg_link}"
+    try:
+        send_negotiation_message(access_token=access_token, negotiation_id=negotiation_id, user_message=negotiation_message_text)
+        logger.info(f"send_message_to_applicant_command: Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="link_to_tg_bot_sent", new_value=True)
+        logger.info(f"send_message_to_applicant_command: DB record updated with 'link_to_tg_bot_sent' status as True for negotiation ID: {negotiation_id}")
+    except Exception as send_err:
+        logger.error(f"send_message_to_applicant_command: Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
+        # stop method execution in this case, because no need to update resume_records and negotiations status
+        return
+
+
+async def change_employer_state_command(negotiation_id: str) -> None:
+    # TAGS: [resume_related]
+    """Trigger send message to applicant command handler - allows users to send message to applicant."""
+
+    logger.info(f"change_employer_state_command: started. negotiation_id: {negotiation_id}")
+    
+    # ----- IDENTIFY USER and pull required data from records -----
+        
+    vacancy_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="vacancy_id")
+    manager_id = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="manager_id")
+    access_token = get_column_value_by_field(db_model=Managers, search_field_name="id", search_value=manager_id, target_field_name="access_token")
+
+   # ----- CHANGE EMPLOYER STATE  -----
+
+    #await update.message.reply_text(f"Изменяю статус приглашения кандидата на {NEW_EMPLOYER_STATE}...")
+    logger.debug(f"change_employer_state_command: negotiation ID: {negotiation_id} to {EMPLOYER_STATE_CONSIDER}")
+    try:
+        change_negotiation_collection_status_to_consider(
+            access_token=access_token,
+            negotiation_id=negotiation_id
+        )
+        logger.info(f"change_employer_state_command:Collection status of negotiation ID: {negotiation_id} has been successfully changed to {EMPLOYER_STATE_CONSIDER}")
+    except Exception as status_err:
+        logger.error(f"change_employer_state_command: Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
+
+
+
+
+
+
+
+async def update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command(bot_user_id: str, vacancy_id: str) -> None:
+    # TAGS: [resume_related]
+    """Update resume records with fresh videos from applicants directory.
+    Sends notification to admin if fails"""
+
+    logger.info(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: started. user_id: {bot_user_id}")
+    
+    try:
+        # ----- PREPARE PATHS to video files -----
+
+        """video_from_applicants_dir = get_directory_for_video_from_applicants(bot_user_id=bot_user_id, vacancy_id=vacancy_id) # ValueError raised if fails"""
+        video_from_applicants_dir = get_data_subdirectory_path(subdirectory_name="videos")# ValueError raised if fails
+        all_video_paths_list = list(video_from_applicants_dir.glob("*.mp4"))
+        fresh_videos_list = []
+        success_count = 0
+        fail_count = 0
+        
+        for video_path in all_video_paths_list:
+            try:
+                # Parse video path to get resume ID. Video shall have the following structure: 
+                # - type #1: applicant_{applicant_user_id}_resume_{resume_id}_time_{timestamp}_note.mp4
+                # - type #2: - applicant_{applicant_user_id}_resume_{resume_id}_time_{timestamp}.mp4
+                resume_id = video_path.stem.split("_")[3]
+                logger.debug(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Found applicant video. Video path: {video_path} / Resume ID: {resume_id}")
+                # If video not recorded, update list and update resume records
+                """if not is_applicant_video_recorded(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_id=resume_id):"""
+                if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="vacancy_video_received"):
+                    fresh_videos_list.append(resume_id)
+                    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_video_received", value="yes") # ValueError raised if fails
+                    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_video_path", value=str(video_path)) # ValueError raised if fails
+                    success_count += 1
+            except Exception as e:
+                logger.error(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Failed to process video {video_path} for user {bot_user_id}: {e}", exc_info=True)
+                fail_count += 1
+                continue
+        
+        logger.info(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Completed for user_id: {bot_user_id}. Success: {success_count}, Failed: {fail_count}, Total: {len(all_video_paths_list)}")
+    
+    except Exception as e:
+        logger.error(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Failed. user_id {bot_user_id}: {e}", exc_info=True)
+        raise
 
 
 async def source_resumes_triggered_by_admin_command(bot_user_id: str) -> None:
@@ -1834,105 +1948,9 @@ async def resume_analysis_from_ai_to_user_sort_resume(
         raise
 
 
-async def send_message_to_applicant_command(bot_user_id: str, resume_id: str) -> None:
-    # TAGS: [resume_related]
-    """Sends message to applicant. Triggers 'change_employer_state_command'."""
-    
-    # ----- IDENTIFY USER and pull required data from records -----
-    
-    access_token = get_access_token_from_records(bot_user_id=bot_user_id)
-    target_vacancy_id = get_target_vacancy_id_from_records(record_id=bot_user_id)
-
-    # ----- SEND MESSAGE TO APPLICANT  -----
-
-    # Get negotiation ID from resume record
-    negotiation_id = get_negotiation_id_from_resume_record(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id)
-    # Create Telegram bot link for applicant
-    tg_link = create_tg_bot_link_for_applicant(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_id=resume_id)
-    negotiation_message_text = APPLICANT_MESSAGE_TEXT_WITHOUT_LINK + f"{tg_link}"
-    logger.debug(f"Sending message to applicant for negotiation ID: {negotiation_id}")
-    try:
-        send_negotiation_message(access_token=access_token, negotiation_id=negotiation_id, user_message=negotiation_message_text)
-        logger.info(f"Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
-    except Exception as send_err:
-        logger.error(f"Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
-        # stop method execution in this case, because no need to update resume_records and negotiations status
-        return
-
-    # ----- UPDATE RESUME_RECORDS file with new status of request to shoot resume video -----
-
-    new_status_of_request_to_shoot_resume_video = "yes"
-    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id, key="request_to_shoot_resume_video_sent", value=new_status_of_request_to_shoot_resume_video)
-    # If cannot update resume records, ValueError is raised from method: update_resume_record_with_top_level_key()
 
 
-async def change_employer_state_command(bot_user_id: str, resume_id: str) -> None:
-    # TAGS: [resume_related]
-    """Trigger send message to applicant command handler - allows users to send message to applicant."""
 
-    logger.info(f"change_employer_state_command started. user_id: {bot_user_id}")
-    
-    # ----- IDENTIFY USER and pull required data from records -----
-    
-    access_token = get_access_token_from_records(bot_user_id=bot_user_id)
-    target_vacancy_id = get_target_vacancy_id_from_records(record_id=bot_user_id)
-    negotiation_id = get_negotiation_id_from_resume_record(bot_user_id=bot_user_id, vacancy_id=target_vacancy_id, resume_record_id=resume_id)
-
-   # ----- CHANGE EMPLOYER STATE  -----
-
-    #await update.message.reply_text(f"Изменяю статус приглашения кандидата на {NEW_EMPLOYER_STATE}...")
-    logger.debug(f"Changing collection status of negotiation ID: {negotiation_id} to {EMPLOYER_STATE_CONSIDER}")
-    try:
-        change_negotiation_collection_status_to_consider(
-            access_token=access_token,
-            negotiation_id=negotiation_id
-        )
-        logger.info(f"Collection status of negotiation ID: {negotiation_id} has been successfully changed to {EMPLOYER_STATE_CONSIDER}")
-    except Exception as status_err:
-        logger.error(f"Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
-
-
-async def update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command(bot_user_id: str, vacancy_id: str) -> None:
-    # TAGS: [resume_related]
-    """Update resume records with fresh videos from applicants directory.
-    Sends notification to admin if fails"""
-
-    logger.info(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: started. user_id: {bot_user_id}")
-    
-    try:
-        # ----- PREPARE PATHS to video files -----
-
-        """video_from_applicants_dir = get_directory_for_video_from_applicants(bot_user_id=bot_user_id, vacancy_id=vacancy_id) # ValueError raised if fails"""
-        video_from_applicants_dir = get_data_subdirectory_path(subdirectory_name="videos")# ValueError raised if fails
-        all_video_paths_list = list(video_from_applicants_dir.glob("*.mp4"))
-        fresh_videos_list = []
-        success_count = 0
-        fail_count = 0
-        
-        for video_path in all_video_paths_list:
-            try:
-                # Parse video path to get resume ID. Video shall have the following structure: 
-                # - type #1: applicant_{applicant_user_id}_resume_{resume_id}_time_{timestamp}_note.mp4
-                # - type #2: - applicant_{applicant_user_id}_resume_{resume_id}_time_{timestamp}.mp4
-                resume_id = video_path.stem.split("_")[3]
-                logger.debug(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Found applicant video. Video path: {video_path} / Resume ID: {resume_id}")
-                # If video not recorded, update list and update resume records
-                """if not is_applicant_video_recorded(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_id=resume_id):"""
-                if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="vacancy_video_received"):
-                    fresh_videos_list.append(resume_id)
-                    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_video_received", value="yes") # ValueError raised if fails
-                    update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_video_path", value=str(video_path)) # ValueError raised if fails
-                    success_count += 1
-            except Exception as e:
-                logger.error(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Failed to process video {video_path} for user {bot_user_id}: {e}", exc_info=True)
-                fail_count += 1
-                continue
-        
-        logger.info(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Completed for user_id: {bot_user_id}. Success: {success_count}, Failed: {fail_count}, Total: {len(all_video_paths_list)}")
-    
-    except Exception as e:
-        logger.error(f"update_resume_records_with_fresh_video_from_applicants_triggered_by_admin_command: Failed. user_id {bot_user_id}: {e}", exc_info=True)
-        raise
 
 async def recommend_resumes_triggered_by_admin_command(bot_user_id: str, application: Application) -> None:
     # TAGS: [recommendation_related]

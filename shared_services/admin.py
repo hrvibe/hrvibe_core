@@ -30,7 +30,7 @@ from shared_services.db_service import (
     get_column_value_by_field
 )
 
-from database import Managers, Vacancies, Negotiations, Base
+from database import Managers, Vacancies, Negotiations, Base, SessionLocal
 
 
 
@@ -86,7 +86,7 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
     #TAGS: [admin]
     """
     Admin command to analyze sourcing criterias for a specific vacancy.
-    Usage: /admin_analyze_sourcing_criterais <vacancy_id>
+    Usage: /command_name <vacancy_id>
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
@@ -123,9 +123,9 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
                 else:
                     raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_analyze_criterias <vacancy_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_analyze_criterias <vacancy_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
     
     except Exception as e:
         logger.error(f"admin_anazlyze_sourcing_criterais_command: Failed to execute command: {e}", exc_info=True)
@@ -141,7 +141,7 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
     #TAGS: [admin]
     """
     Admin command to send sourcing criterias to a specific vacancy.
-    Usage: /admin_send_sourcing_criterais_to_user [vacancy_id]
+    Usage: /command_name [vacancy_id]
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
@@ -179,9 +179,9 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
                 else:
                     raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_send_sourcing_criterais_to_user <vacancy_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_send_sourcing_criterais_to_user <vacancy_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
     
     except Exception as e:
         logger.error(f"admin_send_sourcing_criterais_to_user_command: Failed: {e}", exc_info=True)
@@ -193,11 +193,84 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
             )
 
 
+
+async def admin_send_tg_link_and_change_employer_state_to_applicants_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    #TAGS: [admin]
+    """
+    Admin command to analyze sourcing criterias for a specific vacancy.
+    Usage: /command_name <vacancy_id>
+    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
+    """
+
+    try:
+        # ----- IDENTIFY USER and pull required data from records -----
+
+        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+        logger.info(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: started. User_id: {bot_user_id}")
+
+        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
+
+        admin_id = os.getenv("ADMIN_ID", "")
+        if not admin_id or bot_user_id != admin_id:
+            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
+            logger.error(f"Unauthorized for {bot_user_id}")
+            return
+
+        # ----- PARSE COMMAND ARGUMENTS -----
+
+        vacancy_id = None
+        if context.args and len(context.args) == 1:
+            vacancy_id = context.args[0]
+            if vacancy_id:
+                # Verify that the vacancy exists
+                if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
+                    # Check if vacancy has description received
+                    if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="description_recieved"):
+                        # Query Negotiations table for records matching criteria
+                        db = SessionLocal()
+                        try:
+                            negotiations = db.query(Negotiations).filter(
+                                Negotiations.vacancy_id == vacancy_id,
+                                Negotiations.link_to_tg_bot_sent == False
+                            ).all()
+                            list_of_negotiation_ids = [negotiation.id for negotiation in negotiations]
+                        except Exception as e:
+                            logger.error(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: Error querying Negotiations table: {e}", exc_info=True)
+                            raise
+                        finally:
+                            db.close()
+
+                        # Import here to avoid circular dependency
+                        from manager_bot.manager_bot import send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command
+                        for negotiation_id in list_of_negotiation_ids:
+                            await send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command(negotiation_id=negotiation_id)
+                        await send_message_to_user(update, context, text=f"Tasks for sending Telegram link and changing employer state to applicants are in task_queue for vacancy {vacancy_id}. Num of negotiations to process: {len(list_of_negotiation_ids)}")
+                    else:
+                        raise ValueError(f"Vacancy {vacancy_id} does not have vacancy description received.")     
+                else:
+                    raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
+            else:
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
+        else:
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
+
+    except Exception as e:
+        logger.error(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: Failed to execute command: {e}", exc_info=True)
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"⚠️ Error admin_send_tg_link_and_change_employer_state_to_applicants_command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+            )
+
+
+
+
 async def admin_update_negotiations_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     #TAGS: [admin]
     """
     Admin command to update negotiations for specific vacancy.
-    Usage: /admin_update_negotiations [vacancy_id]
+    Usage: /command_name [vacancy_id]
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
@@ -234,9 +307,9 @@ async def admin_update_negotiations_command(update: Update, context: ContextType
                 else:
                     raise ValueError(f"Vacancy {vacancy_id} not found in database.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_update_negotiations <vacancy_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_update_negotiations <vacancy_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
     
     except Exception as e:
         logger.error(f"admin_update_negotiations_command: Failed to execute command: {e}", exc_info=True)
@@ -287,9 +360,9 @@ async def admin_get_fresh_resumes_command(update: Update, context: ContextTypes.
                 else:
                     raise ValueError(f"User {target_user_id} not found in records.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_get_fresh_resumes <user_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_get_fresh_resumes <user_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
 
     except Exception as e:
         logger.error(f"admin_get_fresh_resumes_command: Failed to execute command: {e}", exc_info=True)
@@ -341,9 +414,9 @@ async def admin_anazlyze_resumes_command(update: Update, context: ContextTypes.D
                 else:
                     raise ValueError(f"User {target_user_id} not found in records.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_analyze_resumes <user_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_analyze_resumes <user_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
     
     except Exception as e:
         logger.error(f"admin_anazlyze_resumes_command: Failed to execute command: {e}", exc_info=True)
@@ -395,9 +468,9 @@ async def admin_update_resume_records_with_applicants_video_status_command(updat
                 else:
                     raise ValueError(f"User {target_user_id} not found in records.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_update_resume_records_with_applicants_video_status_for_all <user_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_update_resume_records_with_applicants_video_status_for_all <user_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
 
     
     except Exception as e:
@@ -449,9 +522,9 @@ async def admin_recommend_resumes_command(update: Update, context: ContextTypes.
                 else:
                     raise ValueError(f"User {target_user_id} not found in records.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /admin_recommend <user_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /admin_recommend <user_id>")
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
     
     except Exception as e:
         logger.error(f"admin_recommend_resumes_command: Failed to execute command: {e}", exc_info=True)
@@ -467,8 +540,8 @@ async def admin_send_message_command(update: Update, context: ContextTypes.DEFAU
     #TAGS: [admin]
     """
     Admin command to send a message to a specific user by user_id (chat_id).
-    Usage: /admin_send_message <user_id> <message_text>
-    Usage example: /admin_send_message 7853115214 Привет! Как дела?
+    Usage: /command_name <user_id> <message_text>
+    Usage example: /command_name 7853115214 Привет! Как дела?
     Sends notification to admin if fails
     """
     
@@ -492,7 +565,7 @@ async def admin_send_message_command(update: Update, context: ContextTypes.DEFAU
             await send_message_to_user(
                 update, 
                 context, 
-                text="⚠️ Неверный формат команды.\nИспользование: /admin_send_message <user_id> <текст_сообщения>"
+                text="⚠️ Неверный формат команды.\nИспользование: /command_name <user_id> <текст_сообщения>"
             )
             return
         
@@ -540,9 +613,9 @@ async def admin_pull_file_command(update: Update, context: ContextTypes.DEFAULT_
     #TAGS: [admin]
     """
     Admin command to pull and send files (logs, videos, audio, etc.).
-    Usage: /admin_pull_file <file_relative_path>
-    Usage example: /admin_pull_file logs/manager_bot_logs/1234432.log
-    Usage example: /admin_pull_file audio/manager_id_123_vacancy_id_456_time_20260123_120622.ogg
+    Usage: /command_name <file_relative_path>
+    Usage example: /command_name logs/manager_bot_logs/1234432.log
+    Usage example: /command_name audio/manager_id_123_vacancy_id_456_time_20260123_120622.ogg
     Sends the file as a document to the admin chat.
     """
     
@@ -563,7 +636,7 @@ async def admin_pull_file_command(update: Update, context: ContextTypes.DEFAULT_
         # ----- PARSE COMMAND ARGUMENTS -----
 
         if not context.args or len(context.args) != 1:
-            invalid_args_text = "Invalid arguments.\nValid: /admin_pull_file <file_relative_path>"
+            invalid_args_text = "Invalid arguments.\nValid: /command_name <file_relative_path>"
             raise ValueError(invalid_args_text)
         
         file_relative_path = context.args[0]
@@ -617,8 +690,8 @@ async def admin_push_file_command(update: Update, context: ContextTypes.DEFAULT_
     #TAGS: [admin]
     """
     Admin command to upload a file to a specified location.
-    Usage: /admin_push_file <file_relative_path>
-    Usage example: /admin_push_file logs/manager_bot_logs/1234432.log
+    Usage: /command_name <file_relative_path>
+    Usage example: /command_name logs/manager_bot_logs/1234432.log
     After calling the command, send the file (json, txt, or mp4) as a document.
     The file will be saved to the specified location.
     """
@@ -640,7 +713,7 @@ async def admin_push_file_command(update: Update, context: ContextTypes.DEFAULT_
         # ----- PARSE COMMAND ARGUMENTS -----
 
         if not context.args or len(context.args) != 1:
-            invalid_args_text = "Invalid arguments.\nValid: /admin_push_file <file_path>"
+            invalid_args_text = "Invalid arguments.\nValid: /command_name <file_path>"
             raise ValueError(invalid_args_text)
         
         file_path_str = context.args[0]
@@ -729,7 +802,7 @@ async def admin_push_file_document_handler(update: Update, context: ContextTypes
         file_path_str = context.user_data.get("admin_push_file_path")
         if not file_path_str:
             logger.error("admin_push_file_document_handler: File path not found in context")
-            await update.message.reply_text("❌ Error: File path not found. Please run /admin_push_file command again.")
+            await update.message.reply_text("❌ Error: File path not found. Please run /command_name command again.")
             context.user_data.pop("admin_push_file_waiting", None)
             context.user_data.pop("admin_push_file_path", None)
             return
@@ -872,13 +945,13 @@ async def admin_update_db_command(update: Update, context: ContextTypes.DEFAULT_
     #TAGS: [admin]
     """
     Admin command to update a database record.
-    Usage: /admin_update_db <table_name> <record_id> <column_name> <new_value>
+    Usage: /command_name <table_name> <record_id> <column_name> <new_value>
     
     Examples:
-    /admin_update_db managers 7853115214 access_token "new_token_value"
-    /admin_update_db managers 7853115214 privacy_policy_confirmed true
-    /admin_update_db managers 7853115214 access_token_expires_at 1234567890
-    /admin_update_db vacancies vacancy_123 name "New Vacancy Name"    
+    /command_name managers 7853115214 access_token "new_token_value"
+    /command_name managers 7853115214 privacy_policy_confirmed true
+    /command_name managers 7853115214 access_token_expires_at 1234567890
+    /command_name vacancies vacancy_123 name "New Vacancy Name"    
     Note: For JSON columns, you can use either Python dict syntax (single quotes) or JSON format (double quotes).
     """
     
@@ -903,11 +976,11 @@ async def admin_update_db_command(update: Update, context: ContextTypes.DEFAULT_
                 update, 
                 context, 
                 text="⚠️ Неверный формат команды.\n"
-                     "Использование: /admin_update_db <table_name> <record_id> <column_name> <new_value>\n\n"
+                     "Использование: /command_name <table_name> <record_id> <column_name> <new_value>\n\n"
                      "Примеры:\n"
-                     "/admin_update_db managers 7853115214 access_token \"new_token\"\n"
-                     "/admin_update_db managers 7853115214 privacy_policy_confirmed true\n"
-                     "/admin_update_db managers 7853115214 access_token_expires_at 1234567890"
+                     "/command_name managers 7853115214 access_token \"new_token\"\n"
+                     "/command_name managers 7853115214 privacy_policy_confirmed true\n"
+                     "/command_name managers 7853115214 access_token_expires_at 1234567890"
             )
             return
         
