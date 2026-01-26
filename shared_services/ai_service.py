@@ -32,16 +32,18 @@ def analyze_vacancy_with_ai(vacancy_data: json, prompt_vacancy_analysis_text: st
         dict: Parsed JSON response from the model.
     """
     
-    logger.debug("Preparing AI request for vacancy analysis…")
+    log_info_msg = "analyze_vacancy_with_ai"
+
     
-    '''
+    logger.debug(f"{log_info_msg}: Preparing AI request for vacancy analysis…")
+    
     user_message = f"""
     Вакансия:
     {json.dumps(vacancy_data, ensure_ascii=False, indent=2)}
     Задача анализа:
     {prompt_vacancy_analysis_text}
     """
-    logger.debug(f"Sending request to OpenAI model='{model}'. Waiting for response…")
+    logger.debug(f"{log_info_msg}: Sending request to OpenAI model='{model}'. Waiting for response…")
     try:
         response = client.chat.completions.create(
             model=model,
@@ -51,32 +53,17 @@ def analyze_vacancy_with_ai(vacancy_data: json, prompt_vacancy_analysis_text: st
             ],
             response_format={"type": "json_object"}  # ensures valid JSON output
         )
-        logger.debug("Response received from OpenAI. Parsing…")
+        logger.debug(f"{log_info_msg}: Response received from OpenAI. Parsing…")
     except Exception as e:
-        logger.error(f"OpenAI request failed: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: OpenAI request failed: {e}", exc_info=True)
         return {"error": str(e)}
     try:
         result = json.loads(response.choices[0].message.content)
     except json.JSONDecodeError:
-        logger.warning("Response is not valid JSON, returning raw text instead.")
+        logger.warning(f"{log_info_msg}: Response is not valid JSON, returning raw text instead.")
         result = {"raw_output": response.choices[0].message.content}
-    logger.debug("Vacancy analysis completed.")
+    logger.debug(f"{log_info_msg}: Vacancy analysis completed.")
     return result
-    '''
-
-    # !!! FOR TESTING ONLY !!!
-    # !!! FOR TESTING ONLY !!!
-    # !!! FOR TESTING ONLY !!!
-    # !!! FOR TESTING ONLY !!!
-
-    with open("/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_sourcing_criterias.json", "r", encoding="utf-8") as f:
-        result = json.load(f)
-    logger.debug(f"Sourcing criterias fetched from fake file: {result}")
-    return result
-
-    # !!! FOR TESTING ONLY !!!
-    # !!! FOR TESTING ONLY !!!
-    # !!! FOR TESTING ONLY !!!  
 
 
 def format_sourcing_criterias_analysis_result_for_markdown(vacancy_id: str) -> str:
@@ -146,11 +133,13 @@ def analyze_resume_with_ai(vacancy_description: json, sourcing_criterias: json, 
     {json.dumps(resume_data, ensure_ascii=False, indent=2)}
     Задача анализа:
     {prompt_resume_analysis_text}
+    
+    Важно: Верни результат в формате JSON (json).
     """
     response = client.chat.completions.create(
         model=model,
         messages=[
-            {"role": "system", "content": "Ты — профессиональный сорсер резюме."},
+            {"role": "system", "content": "Ты — профессиональный сорсер резюме. Всегда возвращай результат в формате JSON."},
             {"role": "user", "content": user_message}
         ],
         response_format={"type": "json_object"}  # ensures valid JSON output

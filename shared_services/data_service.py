@@ -494,24 +494,56 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
     # ----- GET VALUES for TEXT -----
     
     vacancy_id = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="vacancy_id")
+    if vacancy_id is None:
+        raise ValueError(f"{log_info_msg}: vacancy_id not found for negotiation {negotiation_id}")
+    
     vacancy_name = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="name")
     first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="applicant_first_name")
     last_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="applicant_last_name")
     final_score = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_score")
-    recommendation = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_analysis")["recommendation"]
-    attention = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_analysis")["requirements_compliance"]["attention"]
+    
+    # Get resume_ai_analysis and check if it exists
+    resume_ai_analysis = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_analysis")
+    if resume_ai_analysis is None:
+        raise ValueError(f"{log_info_msg}: resume_ai_analysis not found for negotiation {negotiation_id}. Resume analysis may not have been completed yet.")
+    
+    # Safely access nested values
+    recommendation = resume_ai_analysis.get("recommendation")
+    requirements_compliance = resume_ai_analysis.get("requirements_compliance", {})
+    attention = requirements_compliance.get("attention")
 
-    if not first_name or not last_name or not final_score or not recommendation or not attention:
-        raise ValueError(f"{log_info_msg}: Missing required values")
+    # Validate required fields (attention is optional)
+    if not first_name or not last_name or not final_score or not recommendation:
+        raise ValueError(f"{log_info_msg}: Missing required values. first_name={first_name}, last_name={last_name}, final_score={final_score}, recommendation={recommendation}")
     
     # ----- FORMAT ATTENTION list to present each item on a new line -----
+    # attention is optional, provide default if missing
 
-    if isinstance(attention, list):
-        attention_text = "\n".join(f"- {item}" for item in attention)
+    if attention is None or attention == "":
+        attention_text = "Нет особых замечаний."
+    elif isinstance(attention, list):
+        if len(attention) > 0:
+            attention_text = "\n".join(f"- {item}" for item in attention)
+        else:
+            attention_text = "Нет особых замечаний."
     else:
         attention_text = str(attention)
 
     # ----- FORMAT RECOMMENDATION TEXT and send message -----
+    # Handle recommendation - it might be a dict or string
+    if isinstance(recommendation, dict):
+        # If recommendation is a dict, format it nicely
+        recommendation_str = ""
+        if "decision" in recommendation:
+            recommendation_str += f"Решение: {recommendation['decision']}\n"
+        if "priority" in recommendation:
+            recommendation_str += f"Приоритет: {recommendation['priority']}\n"
+        if "rationale" in recommendation:
+            recommendation_str += f"Обоснование: {recommendation['rationale']}"
+        if not recommendation_str:
+            recommendation_str = json.dumps(recommendation, ensure_ascii=False, indent=2)
+    else:
+        recommendation_str = str(recommendation)
 
     recommendation_text = (
         f"<b>Вакансия</b>: {vacancy_name}\n"
@@ -519,7 +551,7 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
         f"<b>Имя</b>: {first_name} {last_name}\n"
         f"<b>Общий балл</b>: <b>{final_score}</b> из 10\n"
         f"--------------------\n"
-        f"<b>Рекомендация:</b>\n{recommendation}\n"
+        f"<b>Рекомендация:</b>\n{recommendation_str}\n"
         f"--------------------\n"
         f"<b>Обратить внимание:</b>\n{attention_text}"
     )

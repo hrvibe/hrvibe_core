@@ -228,9 +228,11 @@ async def setup_new_user_command(update: Update, context: ContextTypes.DEFAULT_T
 
         # ------ ENRICH RECORDS with NEW USER DATA ------
 
+        user_details = f"tg_user_id: {bot_user_id}\n"
         tg_user_attributes = ["username", "first_name", "last_name"]
         for item in tg_user_attributes:
             tg_user_attribute_value = get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute=item)
+            user_details += f"{item}: {tg_user_attribute_value}\n"
             update_record_in_db(db_model=Managers, record_id=bot_user_id, updates={item: tg_user_attribute_value})
             # If cannot update user records, ValueError is raised from method: update_user_records_with_top_level_key()
         logger.debug(f"setup_new_user_command: {bot_user_id} in user records is updated with telegram user attributes.")
@@ -241,7 +243,7 @@ async def setup_new_user_command(update: Update, context: ContextTypes.DEFAULT_T
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"✅ New user {bot_user_id} has been successfully setup."
+                text=f"😎 New user has been setup.\n{user_details}"
             )
         
     except Exception as e:
@@ -362,6 +364,15 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
 
         if privacy_policy_confirmation_user_decision == "yes":
             await send_message_to_user(update, context, text=SUCCESS_TO_GET_PRIVACY_POLICY_CONFIRMATION_TEXT)
+
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"😎 New user {bot_user_id} has given privacy policy confirmation."
+            )
             
         # ----- SEND AUTHENTICATION REQUEST and wait for user to authorize -----
     
@@ -782,6 +793,15 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
             await send_message_to_user(update, context, text=MISSING_VIDEO_RECORD_TEXT)
             return
 
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"😎 New user {bot_user_id} has sent video."
+            )
+
     else:
 
     # ----- IF USER CHOSE "NO" ask for another video -----
@@ -937,6 +957,15 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
             },
         )
 
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"😎 New user {bot_user_id} has selected vacancy: {vacancy_name_value}."
+            )
+
         # ----- UPDATE USER RECORDS with selected vacancy data and inform user -----
 
         # Now you can use callback_data or selected_option for your logic
@@ -1021,6 +1050,14 @@ async def read_vacancy_description_command(update: Update, context: ContextTypes
         update_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=target_vacancy_id, target_field_name="description_recieved", new_value=True)
         update_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=target_vacancy_id, target_field_name="description_json", new_value=vacancy_description)
 
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"😎 Vacancy description recieved for vacancy: {target_vacancy_name} (id: {target_vacancy_id}) for new user {bot_user_id}.\n ❗️ ACTION REQUIRED❗️: Define sourcing criterias for this vacancy."
+            )
     
     except Exception as e:
         logger.error(f"{log_info_msg}: Failed to read vacancy description: {e}", exc_info=True)
@@ -1131,19 +1168,6 @@ async def get_sourcing_criterias_from_ai_and_save_to_db(
 
     logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
 
-    '''
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
-
-        with open("/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_sourcing_criterias.json", "r", encoding="utf-8") as f:
-            vacancy_analysis_result = json.load(f)
-        logger.debug(f"Sourcing criterias fetched from fake file: {vacancy_analysis_result}")
-
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!  
-    '''
 
     try:
         # ----- CALL AI ANALYZER -----
@@ -1158,6 +1182,8 @@ async def get_sourcing_criterias_from_ai_and_save_to_db(
         update_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="sourcing_criterias_recieved", new_value=True)
         update_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="sourcing_criterias_json", new_value=vacancy_analysis_result)
         
+
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
     except Exception as e:
         logger.error(f"Failed to get sourcing criterias and save to DB for vacancy {vacancy_id}: {e}", exc_info=True)        # Send notification to admin about the error
         raise
@@ -1413,12 +1439,12 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     if sourcing_criterias_confirmation_user_decision == "yes":
 
         await send_message_to_user(update, context, text=f"{SUCCESS_TO_GET_SOURCING_CRITERIAS_CONFIRMATION_TEXT}\n{SUCCESS_TO_START_SOURCING_TEXT}")
-        await send_message_to_admin(application=context.application, text=f"User {bot_user_id} has confirmed sourcing criterias. Start sourcing manually.")
+        await send_message_to_admin(application=context.application, text=f"😎 User {bot_user_id} has confirmed sourcing criterias. Start sourcing manually.")
 
     elif sourcing_criterias_confirmation_user_decision == "no":
 
         await send_message_to_user(update, context, text="Хорошо, расскажите, почему вы не согласны с критериями отбора кандидатов.\n\nПришлите аудио-запись прямо в этот чат, пожалуйста.\n\nЯ подправлю критерии и пришлю на согласование снова.")
-        await send_message_to_admin(application=context.application, text=f"User {bot_user_id} has NOT confirmed sourcing criterias. Asked for feedback. Waiting.")
+        await send_message_to_admin(application=context.application, text=f"😎 User {bot_user_id} has NOT confirmed sourcing criterias. Asked for feedback. Waiting.")
 
     else:   
 
@@ -2297,7 +2323,7 @@ def create_manager_application(token: str) -> Application:
     application.add_handler(CallbackQueryHandler(handle_answer_policy_confirmation, pattern=r"^privacy_policy_confirmation:"))
     application.add_handler(CallbackQueryHandler(handle_answer_sourcing_criterias_confirmation, pattern=r"^sourcing_criterias_confirmation:"))
     application.add_handler(CallbackQueryHandler(handle_chat_menu_action, pattern=r"^menu_action:"))
-    application.add_handler(CallbackQueryHandler(handle_invite_to_interview_button, pattern=r"^invite_to_interview:"))
+    #application.add_handler(CallbackQueryHandler(handle_invite_to_interview_button, pattern=r"^invite_to_interview:"))
     
     menu_buttons_pattern = f"^({re.escape(BTN_MENU)}|{re.escape(BTN_FEEDBACK)})$"
     application.add_handler(

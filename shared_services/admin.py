@@ -1,6 +1,7 @@
 # TAGS: [admin]
 # Shared admin commands for manager_bot, applicant_bot, and consultant_bot
 
+import asyncio
 import json
 import logging
 import os
@@ -97,7 +98,9 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
                         logger.debug(f"{log_info_msg}: call manager_bot command")
                         from manager_bot.manager_bot import define_sourcing_criterias_triggered_by_admin_command
                         await define_sourcing_criterias_triggered_by_admin_command(vacancy_id=vacancy_id)
-                        await send_message_to_user(update, context, text=f"Task for analysing sourcing criterias is in task_queue for vacancy {vacancy_id}.")
+                        if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
+                            manager_id = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="manager_id")
+                            await send_message_to_user(update, context, text=f"😎 Sourcing criterias are ready for vacancy {vacancy_id} for user {manager_id}.")
                     else:
                         raise ValueError(f"{log_info_msg}: Vacancy {vacancy_id} does not have vacancy description received.")     
                 else:
@@ -154,7 +157,7 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
                         logger.debug(f"{log_info_msg}: call manager_bot command")
                         from manager_bot.manager_bot import send_to_user_sourcing_criterias_triggered_by_admin_command
                         await send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id=vacancy_id, application=context.application)
-                        await send_message_to_user(update, context, text=f"Sent sourcing criteria for vacancy {vacancy_id} to user. Waiting for feedback.")
+                        await send_message_to_user(update, context, text=f"😎 Sent sourcing criteria for vacancy {vacancy_id} to user. Waiting for feedback.")
                     else:
                         raise ValueError(f"Vacancy {vacancy_id} does not have sourcing criterias received.")     
                 else:
@@ -173,6 +176,55 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
                 text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
+
+#source_negotiations_triggered_by_admin_command
+
+async def admin_source_negotiations(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    #TAGS: [admin]
+
+    log_info_msg = "admin_source_negotiations"
+
+    try:
+        # ----- IDENTIFY USER and pull required data from records -----
+
+        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+        logger.info(f"{log_info_msg}: start")
+
+        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
+
+        if not await _is_user_admin(bot_user_id=bot_user_id):
+            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
+            return
+
+        # ----- PARSE COMMAND ARGUMENTS -----
+
+
+        vacancy_id = None
+        if context.args and len(context.args) == 1:
+            vacancy_id = context.args[0]
+            if vacancy_id:
+                # Verify that the vacancy exists
+                if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
+                    # Import here to avoid circular dependency
+                    logger.debug(f"{log_info_msg}: call manager_bot command")
+                    from manager_bot.manager_bot import source_negotiations_triggered_by_admin_command
+                    await source_negotiations_triggered_by_admin_command(vacancy_id=vacancy_id)
+                    await send_message_to_user(update, context, text=f"😎 Notification sourced for vacancy {vacancy_id}.")
+                else:
+                    raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
+            else:
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
+        else:
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
+    
+    except Exception as e:
+        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+            )
 
 
 async def admin_send_tg_link_and_change_employer_state_to_applicants_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -215,7 +267,7 @@ async def admin_send_tg_link_and_change_employer_state_to_applicants_command(upd
                         ).all()
                         list_of_negotiation_ids = [negotiation.id for negotiation in negotiations]
                     except Exception as e:
-                        logger.error(f"admin_send_tg_link_and_change_employer_state_to_applicants_command: Error querying Negotiations table: {e}", exc_info=True)
+                        logger.error(f"{log_info_msg}: Error querying Negotiations table: {e}", exc_info=True)
                         raise
                     finally:
                         db.close()
@@ -304,7 +356,7 @@ async def admin_get_new_applicant_videos_command(update: Update, context: Contex
                         file_path = os.path.join(video_dir_path, video_file)
                         output_text_path += f"{file_path}\n"
 
-                    send_message_to_admin(application=context.application, text=f"New applicant videos found for vacancy {vacancy_id}.\nNum of videos: {len(list_of_video_files)}.\nNotification IDs: {output_text_negotiation_id}.\nPaths: {output_text_path}")
+                    await send_message_to_admin(application=context.application, text=f"😎 New applicant videos found for vacancy {vacancy_id}.\nNum of videos: {len(list_of_video_files)}.\nNotification IDs: {output_text_negotiation_id}.\nPaths: {output_text_path}")
                     logger.info(f"{log_info_msg}: New applicant videos found. Num of videos: {len(list_of_video_files)}. Notification IDs: {output_text_negotiation_id}.")
                     return
                 else:
@@ -358,9 +410,31 @@ async def admin_analyze_resume_and_get_recommendation_command(update: Update, co
                     from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command, get_resume_recommendation_text_from_resume_records
                     await source_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
                     await analyze_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
-                    recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
-                    await send_message_to_user(update, context, text=f"Resume analysis is done for negotiation {negotiation_id}.")
-                    await send_message_to_user(update, context, text=recommendation_text)
+                    
+                    # Wait for analysis to complete (polling with timeout)
+                    max_wait_time = 300  # Maximum wait time in seconds (5 minutes)
+                    poll_interval = 2  # Check every 2 seconds
+                    elapsed_time = 0
+                    
+                    await send_message_to_user(update, context, text=f"⏳ Resume analysis queued for negotiation {negotiation_id}. Waiting for completion...")
+                    
+                    resume_ai_analysis = None
+                    while elapsed_time < max_wait_time:
+                        resume_ai_analysis = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_analysis")
+                        if resume_ai_analysis is not None:
+                            # Analysis is complete
+                            break
+                        await asyncio.sleep(poll_interval)
+                        elapsed_time += poll_interval
+                    
+                    if resume_ai_analysis is not None:
+                        # Analysis is complete, get recommendation
+                        recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
+                        await send_message_to_user(update, context, text=f"😎 Resume analysis completed for negotiation {negotiation_id}.")
+                        await send_message_to_user(update, context, text=recommendation_text)
+                    else:
+                        # Timeout reached
+                        await send_message_to_user(update, context, text=f"⏱️ Resume analysis for negotiation {negotiation_id} is taking longer than expected. Please try again later or check the task queue status.")
                 else:
                     raise ValueError(f"Negotiation {negotiation_id} not found in database.")
             else:

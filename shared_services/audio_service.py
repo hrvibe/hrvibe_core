@@ -175,7 +175,7 @@ async def download_incoming_audio_locally(update: Update, context: ContextTypes.
 
             # Local import to avoid circular dependency with manager_bot
             from manager_bot.manager_bot import send_message_to_admin
-            await send_message_to_admin(application=context.application, text=f"User {bot_user_id} recorded audio for vacancy {vacancy_id}. Here is the audio file path: {audio_file_path}")
+            await send_message_to_admin(application=context.application, text=f"😎 User {bot_user_id} recorded audio for vacancy {vacancy_id}. Here is the audio file path: {audio_file_path}")
 
             # Clear any pending audio data from context object after successful download
             _clear_pending_audio_data_from_context_object(context=context)
