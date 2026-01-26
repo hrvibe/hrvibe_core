@@ -1,0 +1,2378 @@
+{
+  "items": [
+    {
+      "id": "4915721667",
+      "state": {
+        "id": "response",
+        "name": "Отклик"
+      },
+      "created_at": "2025-11-26T15:41:44+0300",
+      "updated_at": "2025-11-26T15:41:44+0300",
+      "resume": {
+        "last_name": "Филатов",
+        "first_name": "Кирилл",
+        "middle_name": "Владимирович",
+        "title": "Юрисконсульт",
+        "created_at": "2010-04-17T04:00:00+0400",
+        "updated_at": "2025-12-04T14:00:15+0300",
+        "area": {
+          "id": "4628",
+          "name": "Баковка  (Московская область)",
+          "url": "https://api.hh.ru/areas/4628"
+        },
+        "age": 47,
+        "gender": {
+          "id": "male",
+          "name": "Мужской"
+        },
+        "salary": {
+          "amount": 250000,
+          "currency": "RUR"
+        },
+        "photo": {
+          "small": "https://img.hhcdn.ru/photo/716556521.jpeg?t=1765247607&h=DM18wn3LudeM0SmfP0qsow",
+          "medium": "https://img.hhcdn.ru/photo/716556522.jpeg?t=1765247607&h=xfnTR9sX2NzYxqnxEpf8XQ",
+          "40": "https://img.hhcdn.ru/photo/716556520.jpeg?t=1765247607&h=w4uInJf5322zjlQRzhbu6g",
+          "100": "https://img.hhcdn.ru/photo/716556521.jpeg?t=1765247607&h=DM18wn3LudeM0SmfP0qsow",
+          "500": "https://img.hhcdn.ru/photo/716556522.jpeg?t=1765247607&h=xfnTR9sX2NzYxqnxEpf8XQ"
+        },
+        "total_experience": {
+          "months": 305
+        },
+        "certificate": [],
+        "owner": {
+          "id": "248438",
+          "comments": {
+            "url": "https://api.hh.ru/applicant_comments/248438",
+            "counters": {
+              "total": 0
+            }
+          }
+        },
+        "can_view_full_info": true,
+        "negotiations_history": {
+          "url": "https://api.hh.ru/resumes/f6b8b4750004de943c008bd2846e6467663757/negotiations_history"
+        },
+        "hidden_fields": [],
+        "actions": {
+          "download": {
+            "pdf": {
+              "url": "https://api.hh.ru/resumes/f6b8b4750004de943c008bd2846e6467663757/download/%D0%A4%D0%B8%D0%BB%D0%B0%D1%82%D0%BE%D0%B2%20%D0%9A%D0%B8%D1%80%D0%B8%D0%BB%D0%BB%20%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B8%D1%87.pdf?type=pdf&topic_id=4915721667&vacancy_id=128088543"
+            },
+            "rtf": {
+              "url": "https://api.hh.ru/resumes/f6b8b4750004de943c008bd2846e6467663757/download/%D0%A4%D0%B8%D0%BB%D0%B0%D1%82%D0%BE%D0%B2%20%D0%9A%D0%B8%D1%80%D0%B8%D0%BB%D0%BB%20%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B8%D1%87.rtf?type=rtf&topic_id=4915721667&vacancy_id=128088543"
+            }
+          }
+        },
+        "url": "https://api.hh.ru/resumes/f6b8b4750004de943c008bd2846e6467663757?topic_id=4915721667&vacancy_id=128088543",
+        "alternate_url": "https://hh.ru/resume/f6b8b4750004de943c008bd2846e6467663757?t=4915721667&vacancyId=128088543",
+        "id": "f6b8b4750004de943c008bd2846e6467663757",
+        "download": {
+          "pdf": {
+            "url": "https://api.hh.ru/resumes/f6b8b4750004de943c008bd2846e6467663757/download/%D0%A4%D0%B8%D0%BB%D0%B0%D1%82%D0%BE%D0%B2%20%D0%9A%D0%B8%D1%80%D0%B8%D0%BB%D0%BB%20%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B8%D1%87.pdf?type=pdf&topic_id=4915721667&vacancy_id=128088543"
+          },
+          "rtf": {
+            "url": "https://api.hh.ru/resumes/f6b8b4750004de943c008bd2846e6467663757/download/%D0%A4%D0%B8%D0%BB%D0%B0%D1%82%D0%BE%D0%B2%20%D0%9A%D0%B8%D1%80%D0%B8%D0%BB%D0%BB%20%D0%92%D0%BB%D0%B0%D0%B4%D0%B8%D0%BC%D0%B8%D1%80%D0%BE%D0%B2%D0%B8%D1%87.rtf?type=rtf&topic_id=4915721667&vacancy_id=128088543"
+          }
+        },
+        "platform": {
+          "id": "headhunter"
+        },
+        "employment_form": [
+          {
+            "id": "FULL",
+            "name": "Постоянная работа"
+          },
+          {
+            "id": "PART_TIME",
+            "name": "Подработка"
+          }
+        ],
+        "work_format": [
+          {
+            "id": "ON_SITE",
+            "name": "На месте работодателя"
+          },
+          {
+            "id": "REMOTE",
+            "name": "Удалённо"
+          },
+          {
+            "id": "FIELD_WORK",
+            "name": "Разъездной"
+          },
+          {
+            "id": "HYBRID",
+            "name": "Гибрид"
+          }
+        ],
+        "real_id": "81695804",
+        "education": {
+          "level": {
+            "id": "higher",
+            "name": "Высшее"
+          },
+          "primary": [
+            {
+              "id": "254867535",
+              "name": "ВУМО РФ -- Военный университет Министерства обороны РФ; ГАВС; ГА ВС; ВПА им. Ленина; ВИИЯ; ВКИМО",
+              "organization": "Юридический/юрисконсульт",
+              "result": null,
+              "year": 2000,
+              "university_acronym": null,
+              "name_id": null,
+              "organization_id": null,
+              "result_id": null,
+              "education_level": {
+                "id": "higher",
+                "name": "Высшее"
+              }
+            }
+          ]
+        },
+        "experience": [
+          {
+            "start": "2024-08-01",
+            "end": null,
+            "company": "ООО \"Спартак-Строй\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [
+              {
+                "id": "13.662",
+                "name": "Строительство дорожное и инфраструктурное"
+              }
+            ],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null,
+            "position": "Руководитель юридического отдела"
+          },
+          {
+            "start": "2020-04-01",
+            "end": "2024-07-01",
+            "company": "КА \"Титаренко, Руссков, Улымов\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2017-10-01",
+            "end": "2020-04-01",
+            "company": "Коллегия адвокатов \"Старков и партнеры\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2016-08-01",
+            "end": "2017-10-01",
+            "company": "КА \"Левинсон и партнеры\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2014-02-01",
+            "end": "2016-08-01",
+            "company": "Коллегия адвокатов \"Совет Столичных Адвокатов\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2013-02-01",
+            "end": "2014-02-01",
+            "company": "Коллегия адвокатов \"Левинсон и партнеры\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2011-02-01",
+            "end": "2013-02-01",
+            "company": "Адвокатский кабинет № 1721",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2010-08-01",
+            "end": "2011-02-01",
+            "company": "Коллегия адвокатов Москвы БРИТ",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2010-03-01",
+            "end": "2010-05-01",
+            "company": "Адвокатское бюро Наталия Онишко и Партнеры",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2008-06-01",
+            "end": "2010-03-01",
+            "company": "ООО \"Игровой клуб \"Ва-банк\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2007-05-01",
+            "end": "2010-03-01",
+            "company": "ООО \"Игровой клуб \"Ва-банк\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2004-06-01",
+            "end": "2007-05-01",
+            "company": "ООО \"Игровой клуб \"Ва-банк\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2003-03-01",
+            "end": "2004-06-01",
+            "company": "ЗАО \"Геликон-М\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2001-10-01",
+            "end": "2003-03-01",
+            "company": "ООО \"Ричлайн\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2000-06-01",
+            "end": "2001-09-01",
+            "company": "Войсковая часть 55002",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null
+          }
+        ],
+        "favorited": false,
+        "viewed": false,
+        "marked": false
+      },
+      "viewed_by_opponent": true,
+      "has_updates": true,
+      "messages_url": "https://api.hh.ru/negotiations/4915721667/messages",
+      "url": "https://api.hh.ru/negotiations/4915721667",
+      "counters": {
+        "messages": 1,
+        "unread_messages": 1
+      },
+      "chat_states": {
+        "response_reminder_state": {
+          "allowed": false
+        }
+      },
+      "source": "NEGOTIATION",
+      "chat_id": 4940175674,
+      "messaging_status": "ok",
+      "applicant_question_state": false,
+      "employer_state": {
+        "id": "response",
+        "name": "Отклик"
+      },
+      "funnel_stage": {
+        "id": "95235547",
+        "state": {
+          "id": "response",
+          "name": "Отклик"
+        },
+        "substate": null
+      },
+      "templates": [
+        {
+          "id": "consider",
+          "url": "https://api.hh.ru/message_templates/consider?topic_id=4915721667",
+          "name": "Приглашение на этап Подумать",
+          "quick": false
+        },
+        {
+          "id": "invite",
+          "url": "https://api.hh.ru/message_templates/invite?topic_id=4915721667",
+          "name": "Первичный контакт с кандидатом из базы резюме",
+          "quick": false
+        },
+        {
+          "id": "invite_after_response",
+          "url": "https://api.hh.ru/message_templates/invite_after_response?topic_id=4915721667",
+          "name": "Первичный контакт по отклику",
+          "quick": false
+        },
+        {
+          "id": "assessment_owner_tool",
+          "url": "https://api.hh.ru/message_templates/assessment_owner_tool?topic_id=4915721667",
+          "name": "Тестовое задание",
+          "quick": false
+        },
+        {
+          "id": "interview",
+          "url": "https://api.hh.ru/message_templates/interview?topic_id=4915721667",
+          "name": "Собеседование",
+          "quick": false
+        },
+        {
+          "id": "offer",
+          "url": "https://api.hh.ru/message_templates/offer?topic_id=4915721667",
+          "name": "Приглашение на Предложение о работе",
+          "quick": false
+        },
+        {
+          "id": "hired",
+          "url": "https://api.hh.ru/message_templates/hired?topic_id=4915721667",
+          "name": "Приглашение на Выход на работу",
+          "quick": false
+        },
+        {
+          "id": "discard_after_interview",
+          "url": "https://api.hh.ru/message_templates/discard_after_interview?topic_id=4915721667",
+          "name": "Не подходит по итогам интервью",
+          "quick": false
+        },
+        {
+          "id": "discard_after_response",
+          "url": "https://api.hh.ru/message_templates/discard_after_response?topic_id=4915721667",
+          "name": "Не подходит",
+          "quick": false
+        },
+        {
+          "id": "discard_by_applicant",
+          "url": "https://api.hh.ru/message_templates/discard_by_applicant?topic_id=4915721667",
+          "name": "Кандидат отказался",
+          "quick": false
+        },
+        {
+          "id": "discard_no_interaction",
+          "url": "https://api.hh.ru/message_templates/discard_no_interaction?topic_id=4915721667",
+          "name": "Не выходит на связь",
+          "quick": false
+        },
+        {
+          "id": "discard_vacancy_closed",
+          "url": "https://api.hh.ru/message_templates/discard_vacancy_closed?topic_id=4915721667",
+          "name": "Вакансия закрыта",
+          "quick": false
+        },
+        {
+          "id": "discard_to_other_vacancy",
+          "url": "https://api.hh.ru/message_templates/discard_to_other_vacancy?topic_id=4915721667",
+          "name": "Перевод на другую вакансию",
+          "quick": false
+        }
+      ],
+      "actions": [
+        {
+          "id": "consider",
+          "name": "Подумать",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/consider/4915721667",
+          "templates": [
+            {
+              "id": "consider",
+              "url": "https://api.hh.ru/message_templates/consider?topic_id=4915721667",
+              "name": "Приглашение на этап Подумать",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "consider",
+            "name": "Подумать"
+          }
+        },
+        {
+          "id": "phone_interview",
+          "name": "Первичный контакт",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/phone_interview/4915721667",
+          "templates": [
+            {
+              "id": "invite",
+              "url": "https://api.hh.ru/message_templates/invite?topic_id=4915721667",
+              "name": "Первичный контакт с кандидатом из базы резюме",
+              "quick": false
+            },
+            {
+              "id": "invite_after_response",
+              "url": "https://api.hh.ru/message_templates/invite_after_response?topic_id=4915721667",
+              "name": "Первичный контакт по отклику",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "phone_interview",
+            "name": "Первичный контакт"
+          },
+          "sub_actions": [
+            {
+              "id": "phone_interview_95235550",
+              "name": "Звонок",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235550/4915721667"
+            },
+            {
+              "id": "phone_interview_95235551",
+              "name": "Мессенджер",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235551/4915721667"
+            },
+            {
+              "id": "phone_interview_95235552",
+              "name": "Связаться еще раз",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235552/4915721667"
+            }
+          ]
+        },
+        {
+          "id": "assessment",
+          "name": "Тестовое задание",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/assessment/4915721667",
+          "templates": [
+            {
+              "id": "assessment_owner_tool",
+              "url": "https://api.hh.ru/message_templates/assessment_owner_tool?topic_id=4915721667",
+              "name": "Тестовое задание",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "assessment",
+            "name": "Тестирование"
+          }
+        },
+        {
+          "id": "interview",
+          "name": "Собеседование",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/interview/4915721667",
+          "templates": [
+            {
+              "id": "interview",
+              "url": "https://api.hh.ru/message_templates/interview?topic_id=4915721667",
+              "name": "Собеседование",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "interview",
+            "name": "Собеседование"
+          }
+        },
+        {
+          "id": "offer",
+          "name": "Предложение о работе",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/offer/4915721667",
+          "templates": [
+            {
+              "id": "offer",
+              "url": "https://api.hh.ru/message_templates/offer?topic_id=4915721667",
+              "name": "Приглашение на Предложение о работе",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "offer",
+            "name": "Предложение о работе"
+          }
+        },
+        {
+          "id": "hired",
+          "name": "Выход на работу",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/hired/4915721667",
+          "templates": [
+            {
+              "id": "hired",
+              "url": "https://api.hh.ru/message_templates/hired?topic_id=4915721667",
+              "name": "Приглашение на Выход на работу",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "hired",
+            "name": "Выход на работу"
+          }
+        },
+        {
+          "id": "discard_by_employer",
+          "name": "Не подходит",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_by_employer/4915721667",
+          "templates": [
+            {
+              "id": "discard_after_interview",
+              "url": "https://api.hh.ru/message_templates/discard_after_interview?topic_id=4915721667",
+              "name": "Не подходит по итогам интервью",
+              "quick": false
+            },
+            {
+              "id": "discard_after_response",
+              "url": "https://api.hh.ru/message_templates/discard_after_response?topic_id=4915721667",
+              "name": "Не подходит",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_by_employer",
+            "name": "Не подходит"
+          }
+        },
+        {
+          "id": "discard_by_applicant",
+          "name": "Кандидат отказался",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_by_applicant/4915721667",
+          "templates": [
+            {
+              "id": "discard_by_applicant",
+              "url": "https://api.hh.ru/message_templates/discard_by_applicant?topic_id=4915721667",
+              "name": "Кандидат отказался",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_by_applicant",
+            "name": "Отказ: кандидат отказался"
+          }
+        },
+        {
+          "id": "discard_no_interaction",
+          "name": "Не выходит на связь",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_no_interaction/4915721667",
+          "templates": [
+            {
+              "id": "discard_no_interaction",
+              "url": "https://api.hh.ru/message_templates/discard_no_interaction?topic_id=4915721667",
+              "name": "Не выходит на связь",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_no_interaction",
+            "name": "Отказ: не выходит на связь"
+          }
+        },
+        {
+          "id": "discard_vacancy_closed",
+          "name": "Вакансия закрыта",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_vacancy_closed/4915721667",
+          "templates": [
+            {
+              "id": "discard_vacancy_closed",
+              "url": "https://api.hh.ru/message_templates/discard_vacancy_closed?topic_id=4915721667",
+              "name": "Вакансия закрыта",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_vacancy_closed",
+            "name": "Отказ: вакансия закрыта"
+          }
+        },
+        {
+          "id": "discard_to_other_vacancy",
+          "name": "Перевод на другую вакансию",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_to_other_vacancy/4915721667",
+          "templates": [
+            {
+              "id": "discard_to_other_vacancy",
+              "url": "https://api.hh.ru/message_templates/discard_to_other_vacancy?topic_id=4915721667",
+              "name": "Перевод на другую вакансию",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_to_other_vacancy",
+            "name": "Отказ: перевод на другую вакансию"
+          }
+        }
+      ],
+      "tags": [
+        {
+          "id": "AWAITING_REPLY"
+        }
+      ],
+      "chat_bot": {
+        "auto_survey": {
+          "text": null
+        }
+      }
+    },
+    {
+      "id": "4915682707",
+      "state": {
+        "id": "response",
+        "name": "Отклик"
+      },
+      "created_at": "2025-11-26T15:29:16+0300",
+      "updated_at": "2025-11-26T15:29:16+0300",
+      "resume": {
+        "last_name": "Кан",
+        "first_name": "Элина",
+        "middle_name": "Николаевна",
+        "title": "Юрист",
+        "created_at": "2005-10-31T16:37:39+0300",
+        "updated_at": "2025-12-03T15:56:20+0300",
+        "area": {
+          "id": "1",
+          "name": "Москва",
+          "url": "https://api.hh.ru/areas/1"
+        },
+        "age": 45,
+        "gender": {
+          "id": "female",
+          "name": "Женский"
+        },
+        "salary": {
+          "amount": 200000,
+          "currency": "RUR"
+        },
+        "photo": null,
+        "total_experience": {
+          "months": 245
+        },
+        "certificate": [],
+        "owner": {
+          "id": "514131",
+          "comments": {
+            "url": "https://api.hh.ru/applicant_comments/514131",
+            "counters": {
+              "total": 0
+            }
+          }
+        },
+        "can_view_full_info": true,
+        "negotiations_history": {
+          "url": "https://api.hh.ru/resumes/d73ae1ab000009e52f008bd284736563726574/negotiations_history"
+        },
+        "hidden_fields": [],
+        "actions": {
+          "download": {
+            "pdf": {
+              "url": "https://api.hh.ru/resumes/d73ae1ab000009e52f008bd284736563726574/download/%D0%9A%D0%B0%D0%BD%20%D0%AD%D0%BB%D0%B8%D0%BD%D0%B0%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B5%D0%B2%D0%BD%D0%B0.pdf?type=pdf&topic_id=4915682707&vacancy_id=128088543"
+            },
+            "rtf": {
+              "url": "https://api.hh.ru/resumes/d73ae1ab000009e52f008bd284736563726574/download/%D0%9A%D0%B0%D0%BD%20%D0%AD%D0%BB%D0%B8%D0%BD%D0%B0%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B5%D0%B2%D0%BD%D0%B0.rtf?type=rtf&topic_id=4915682707&vacancy_id=128088543"
+            }
+          }
+        },
+        "url": "https://api.hh.ru/resumes/d73ae1ab000009e52f008bd284736563726574?topic_id=4915682707&vacancy_id=128088543",
+        "alternate_url": "https://hh.ru/resume/d73ae1ab000009e52f008bd284736563726574?t=4915682707&vacancyId=128088543",
+        "id": "d73ae1ab000009e52f008bd284736563726574",
+        "download": {
+          "pdf": {
+            "url": "https://api.hh.ru/resumes/d73ae1ab000009e52f008bd284736563726574/download/%D0%9A%D0%B0%D0%BD%20%D0%AD%D0%BB%D0%B8%D0%BD%D0%B0%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B5%D0%B2%D0%BD%D0%B0.pdf?type=pdf&topic_id=4915682707&vacancy_id=128088543"
+          },
+          "rtf": {
+            "url": "https://api.hh.ru/resumes/d73ae1ab000009e52f008bd284736563726574/download/%D0%9A%D0%B0%D0%BD%20%D0%AD%D0%BB%D0%B8%D0%BD%D0%B0%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B5%D0%B2%D0%BD%D0%B0.rtf?type=rtf&topic_id=4915682707&vacancy_id=128088543"
+          }
+        },
+        "platform": {
+          "id": "headhunter"
+        },
+        "employment_form": [
+          {
+            "id": "FULL",
+            "name": "Постоянная работа"
+          }
+        ],
+        "work_format": [
+          {
+            "id": "ON_SITE",
+            "name": "На месте работодателя"
+          }
+        ],
+        "real_id": "648495",
+        "education": {
+          "level": {
+            "id": "higher",
+            "name": "Высшее"
+          },
+          "primary": [
+            {
+              "id": "46287433",
+              "name": "Санкт-Петербургский университет Министерства внутренних дел Российской Федерации, Санкт-Петербург",
+              "organization": "Специальность  юриспруденция.",
+              "result": null,
+              "year": 2004,
+              "university_acronym": "СПбУ МВД России",
+              "name_id": "39867",
+              "organization_id": null,
+              "result_id": null,
+              "education_level": {
+                "id": "higher",
+                "name": "Высшее"
+              }
+            },
+            {
+              "id": "46287434",
+              "name": "Ташкентский Финансовый Институт.",
+              "organization": "Кредитно-экономический факультет. Специальность банковское дело.",
+              "result": "Бакалавр",
+              "year": 2001,
+              "university_acronym": null,
+              "name_id": null,
+              "organization_id": null,
+              "result_id": null,
+              "education_level": {
+                "id": "higher",
+                "name": "Высшее"
+              }
+            }
+          ]
+        },
+        "experience": [
+          {
+            "start": "2022-06-01",
+            "end": null,
+            "company": "АНО «Японский центр»",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": null,
+            "position": "Помощник директора по правовым вопросам"
+          },
+          {
+            "start": "2011-05-01",
+            "end": "2021-12-01",
+            "company": "Ассоциация \"Профессиональная строительная группа\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [
+              {
+                "id": "37.629",
+                "name": "Профессиональная, предпринимательская организация"
+              }
+            ],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2010-03-01",
+            "end": "2011-05-01",
+            "company": "ООО \"КвадроТим\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [
+              {
+                "id": "27.551",
+                "name": "Безалкогольные напитки (продвижение, оптовая торговля)"
+              },
+              {
+                "id": "44.398",
+                "name": "Юридическое обслуживание"
+              }
+            ],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2006-03-01",
+            "end": "2010-02-01",
+            "company": "ООО \"РВВ Консалтинг\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [
+              {
+                "id": "44.393",
+                "name": "Консалтинговые услуги"
+              },
+              {
+                "id": "44.398",
+                "name": "Юридическое обслуживание"
+              }
+            ],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2005-01-01",
+            "end": "2005-12-01",
+            "company": "ЗАО \"Что делать Информ\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [
+              {
+                "id": "7.540",
+                "name": "Разработка программного обеспечения"
+              },
+              {
+                "id": "7.539",
+                "name": "Системная интеграция,  автоматизации технологических и бизнес-процессов предприятия, ИТ-консалтинг"
+              }
+            ],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": null,
+            "employer": null
+          }
+        ],
+        "favorited": false,
+        "viewed": false,
+        "marked": false
+      },
+      "viewed_by_opponent": true,
+      "has_updates": true,
+      "messages_url": "https://api.hh.ru/negotiations/4915682707/messages",
+      "url": "https://api.hh.ru/negotiations/4915682707",
+      "counters": {
+        "messages": 1,
+        "unread_messages": 1
+      },
+      "chat_states": {
+        "response_reminder_state": {
+          "allowed": false
+        }
+      },
+      "source": "NEGOTIATION",
+      "chat_id": 4940134763,
+      "messaging_status": "ok",
+      "applicant_question_state": false,
+      "employer_state": {
+        "id": "response",
+        "name": "Отклик"
+      },
+      "funnel_stage": {
+        "id": "95235547",
+        "state": {
+          "id": "response",
+          "name": "Отклик"
+        },
+        "substate": null
+      },
+      "templates": [
+        {
+          "id": "consider",
+          "url": "https://api.hh.ru/message_templates/consider?topic_id=4915682707",
+          "name": "Приглашение на этап Подумать",
+          "quick": false
+        },
+        {
+          "id": "invite",
+          "url": "https://api.hh.ru/message_templates/invite?topic_id=4915682707",
+          "name": "Первичный контакт с кандидатом из базы резюме",
+          "quick": false
+        },
+        {
+          "id": "invite_after_response",
+          "url": "https://api.hh.ru/message_templates/invite_after_response?topic_id=4915682707",
+          "name": "Первичный контакт по отклику",
+          "quick": false
+        },
+        {
+          "id": "assessment_owner_tool",
+          "url": "https://api.hh.ru/message_templates/assessment_owner_tool?topic_id=4915682707",
+          "name": "Тестовое задание",
+          "quick": false
+        },
+        {
+          "id": "interview",
+          "url": "https://api.hh.ru/message_templates/interview?topic_id=4915682707",
+          "name": "Собеседование",
+          "quick": false
+        },
+        {
+          "id": "offer",
+          "url": "https://api.hh.ru/message_templates/offer?topic_id=4915682707",
+          "name": "Приглашение на Предложение о работе",
+          "quick": false
+        },
+        {
+          "id": "hired",
+          "url": "https://api.hh.ru/message_templates/hired?topic_id=4915682707",
+          "name": "Приглашение на Выход на работу",
+          "quick": false
+        },
+        {
+          "id": "discard_after_interview",
+          "url": "https://api.hh.ru/message_templates/discard_after_interview?topic_id=4915682707",
+          "name": "Не подходит по итогам интервью",
+          "quick": false
+        },
+        {
+          "id": "discard_after_response",
+          "url": "https://api.hh.ru/message_templates/discard_after_response?topic_id=4915682707",
+          "name": "Не подходит",
+          "quick": false
+        },
+        {
+          "id": "discard_by_applicant",
+          "url": "https://api.hh.ru/message_templates/discard_by_applicant?topic_id=4915682707",
+          "name": "Кандидат отказался",
+          "quick": false
+        },
+        {
+          "id": "discard_no_interaction",
+          "url": "https://api.hh.ru/message_templates/discard_no_interaction?topic_id=4915682707",
+          "name": "Не выходит на связь",
+          "quick": false
+        },
+        {
+          "id": "discard_vacancy_closed",
+          "url": "https://api.hh.ru/message_templates/discard_vacancy_closed?topic_id=4915682707",
+          "name": "Вакансия закрыта",
+          "quick": false
+        },
+        {
+          "id": "discard_to_other_vacancy",
+          "url": "https://api.hh.ru/message_templates/discard_to_other_vacancy?topic_id=4915682707",
+          "name": "Перевод на другую вакансию",
+          "quick": false
+        }
+      ],
+      "actions": [
+        {
+          "id": "consider",
+          "name": "Подумать",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/consider/4915682707",
+          "templates": [
+            {
+              "id": "consider",
+              "url": "https://api.hh.ru/message_templates/consider?topic_id=4915682707",
+              "name": "Приглашение на этап Подумать",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "consider",
+            "name": "Подумать"
+          }
+        },
+        {
+          "id": "phone_interview",
+          "name": "Первичный контакт",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/phone_interview/4915682707",
+          "templates": [
+            {
+              "id": "invite",
+              "url": "https://api.hh.ru/message_templates/invite?topic_id=4915682707",
+              "name": "Первичный контакт с кандидатом из базы резюме",
+              "quick": false
+            },
+            {
+              "id": "invite_after_response",
+              "url": "https://api.hh.ru/message_templates/invite_after_response?topic_id=4915682707",
+              "name": "Первичный контакт по отклику",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "phone_interview",
+            "name": "Первичный контакт"
+          },
+          "sub_actions": [
+            {
+              "id": "phone_interview_95235550",
+              "name": "Звонок",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235550/4915682707"
+            },
+            {
+              "id": "phone_interview_95235551",
+              "name": "Мессенджер",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235551/4915682707"
+            },
+            {
+              "id": "phone_interview_95235552",
+              "name": "Связаться еще раз",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235552/4915682707"
+            }
+          ]
+        },
+        {
+          "id": "assessment",
+          "name": "Тестовое задание",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/assessment/4915682707",
+          "templates": [
+            {
+              "id": "assessment_owner_tool",
+              "url": "https://api.hh.ru/message_templates/assessment_owner_tool?topic_id=4915682707",
+              "name": "Тестовое задание",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "assessment",
+            "name": "Тестирование"
+          }
+        },
+        {
+          "id": "interview",
+          "name": "Собеседование",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/interview/4915682707",
+          "templates": [
+            {
+              "id": "interview",
+              "url": "https://api.hh.ru/message_templates/interview?topic_id=4915682707",
+              "name": "Собеседование",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "interview",
+            "name": "Собеседование"
+          }
+        },
+        {
+          "id": "offer",
+          "name": "Предложение о работе",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/offer/4915682707",
+          "templates": [
+            {
+              "id": "offer",
+              "url": "https://api.hh.ru/message_templates/offer?topic_id=4915682707",
+              "name": "Приглашение на Предложение о работе",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "offer",
+            "name": "Предложение о работе"
+          }
+        },
+        {
+          "id": "hired",
+          "name": "Выход на работу",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/hired/4915682707",
+          "templates": [
+            {
+              "id": "hired",
+              "url": "https://api.hh.ru/message_templates/hired?topic_id=4915682707",
+              "name": "Приглашение на Выход на работу",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "hired",
+            "name": "Выход на работу"
+          }
+        },
+        {
+          "id": "discard_by_employer",
+          "name": "Не подходит",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_by_employer/4915682707",
+          "templates": [
+            {
+              "id": "discard_after_interview",
+              "url": "https://api.hh.ru/message_templates/discard_after_interview?topic_id=4915682707",
+              "name": "Не подходит по итогам интервью",
+              "quick": false
+            },
+            {
+              "id": "discard_after_response",
+              "url": "https://api.hh.ru/message_templates/discard_after_response?topic_id=4915682707",
+              "name": "Не подходит",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_by_employer",
+            "name": "Не подходит"
+          }
+        },
+        {
+          "id": "discard_by_applicant",
+          "name": "Кандидат отказался",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_by_applicant/4915682707",
+          "templates": [
+            {
+              "id": "discard_by_applicant",
+              "url": "https://api.hh.ru/message_templates/discard_by_applicant?topic_id=4915682707",
+              "name": "Кандидат отказался",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_by_applicant",
+            "name": "Отказ: кандидат отказался"
+          }
+        },
+        {
+          "id": "discard_no_interaction",
+          "name": "Не выходит на связь",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_no_interaction/4915682707",
+          "templates": [
+            {
+              "id": "discard_no_interaction",
+              "url": "https://api.hh.ru/message_templates/discard_no_interaction?topic_id=4915682707",
+              "name": "Не выходит на связь",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_no_interaction",
+            "name": "Отказ: не выходит на связь"
+          }
+        },
+        {
+          "id": "discard_vacancy_closed",
+          "name": "Вакансия закрыта",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_vacancy_closed/4915682707",
+          "templates": [
+            {
+              "id": "discard_vacancy_closed",
+              "url": "https://api.hh.ru/message_templates/discard_vacancy_closed?topic_id=4915682707",
+              "name": "Вакансия закрыта",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_vacancy_closed",
+            "name": "Отказ: вакансия закрыта"
+          }
+        },
+        {
+          "id": "discard_to_other_vacancy",
+          "name": "Перевод на другую вакансию",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_to_other_vacancy/4915682707",
+          "templates": [
+            {
+              "id": "discard_to_other_vacancy",
+              "url": "https://api.hh.ru/message_templates/discard_to_other_vacancy?topic_id=4915682707",
+              "name": "Перевод на другую вакансию",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_to_other_vacancy",
+            "name": "Отказ: перевод на другую вакансию"
+          }
+        }
+      ],
+      "tags": [
+        {
+          "id": "AWAITING_REPLY"
+        }
+      ],
+      "chat_bot": {
+        "auto_survey": {
+          "text": null
+        }
+      }
+    },
+    {
+      "id": "4915589778",
+      "state": {
+        "id": "response",
+        "name": "Отклик"
+      },
+      "created_at": "2025-11-26T14:59:10+0300",
+      "updated_at": "2025-11-26T14:59:10+0300",
+      "resume": {
+        "last_name": "Жилкин",
+        "first_name": "Николай",
+        "middle_name": "Сергеевич",
+        "title": "Юрист",
+        "created_at": "2024-11-22T08:32:48+0300",
+        "updated_at": "2025-12-06T03:04:35+0300",
+        "area": {
+          "id": "2077",
+          "name": "Химки (Московская область)",
+          "url": "https://api.hh.ru/areas/2077"
+        },
+        "age": 41,
+        "gender": {
+          "id": "male",
+          "name": "Мужской"
+        },
+        "salary": null,
+        "photo": {
+          "small": "https://img.hhcdn.ru/photo/729749441.jpeg?t=1765248999&h=TwnZj23NgvL67avI7_ingw",
+          "medium": "https://img.hhcdn.ru/photo/729749442.jpeg?t=1765248999&h=HT6UmVPPrPuP2lgX_PRGBg",
+          "40": "https://img.hhcdn.ru/photo/729749440.jpeg?t=1765248999&h=6wK2MYJLq_DcNcLewxiKZQ",
+          "100": "https://img.hhcdn.ru/photo/729749441.jpeg?t=1765248999&h=TwnZj23NgvL67avI7_ingw",
+          "500": "https://img.hhcdn.ru/photo/729749442.jpeg?t=1765248999&h=HT6UmVPPrPuP2lgX_PRGBg"
+        },
+        "total_experience": {
+          "months": 243
+        },
+        "certificate": [],
+        "owner": {
+          "id": "5920836",
+          "comments": {
+            "url": "https://api.hh.ru/applicant_comments/5920836",
+            "counters": {
+              "total": 0
+            }
+          }
+        },
+        "can_view_full_info": true,
+        "negotiations_history": {
+          "url": "https://api.hh.ru/resumes/fed8e6de000e0a7344008bd28469304355434b/negotiations_history"
+        },
+        "hidden_fields": [],
+        "actions": {
+          "download": {
+            "pdf": {
+              "url": "https://api.hh.ru/resumes/fed8e6de000e0a7344008bd28469304355434b/download/%D0%96%D0%B8%D0%BB%D0%BA%D0%B8%D0%BD%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B9%20%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B5%D0%B2%D0%B8%D1%87.pdf?type=pdf&topic_id=4915589778&vacancy_id=128088543"
+            },
+            "rtf": {
+              "url": "https://api.hh.ru/resumes/fed8e6de000e0a7344008bd28469304355434b/download/%D0%96%D0%B8%D0%BB%D0%BA%D0%B8%D0%BD%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B9%20%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B5%D0%B2%D0%B8%D1%87.rtf?type=rtf&topic_id=4915589778&vacancy_id=128088543"
+            }
+          }
+        },
+        "url": "https://api.hh.ru/resumes/fed8e6de000e0a7344008bd28469304355434b?topic_id=4915589778&vacancy_id=128088543",
+        "alternate_url": "https://hh.ru/resume/fed8e6de000e0a7344008bd28469304355434b?t=4915589778&vacancyId=128088543",
+        "id": "fed8e6de000e0a7344008bd28469304355434b",
+        "download": {
+          "pdf": {
+            "url": "https://api.hh.ru/resumes/fed8e6de000e0a7344008bd28469304355434b/download/%D0%96%D0%B8%D0%BB%D0%BA%D0%B8%D0%BD%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B9%20%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B5%D0%B2%D0%B8%D1%87.pdf?type=pdf&topic_id=4915589778&vacancy_id=128088543"
+          },
+          "rtf": {
+            "url": "https://api.hh.ru/resumes/fed8e6de000e0a7344008bd28469304355434b/download/%D0%96%D0%B8%D0%BB%D0%BA%D0%B8%D0%BD%20%D0%9D%D0%B8%D0%BA%D0%BE%D0%BB%D0%B0%D0%B9%20%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B5%D0%B2%D0%B8%D1%87.rtf?type=rtf&topic_id=4915589778&vacancy_id=128088543"
+          }
+        },
+        "platform": {
+          "id": "headhunter"
+        },
+        "employment_form": [
+          {
+            "id": "FULL",
+            "name": "Постоянная работа"
+          }
+        ],
+        "work_format": [
+          {
+            "id": "ON_SITE",
+            "name": "На месте работодателя"
+          }
+        ],
+        "real_id": "235565892",
+        "education": {
+          "level": {
+            "id": "higher",
+            "name": "Высшее"
+          },
+          "primary": [
+            {
+              "id": "362792825",
+              "name": "Академия труда и социальных отношений г.Москва",
+              "organization": "Юридический, юриспруденция",
+              "result": "Диплом юриста по специальности юриспруденция",
+              "year": 2007,
+              "university_acronym": null,
+              "name_id": null,
+              "organization_id": null,
+              "result_id": null,
+              "education_level": {
+                "id": "higher",
+                "name": "Высшее"
+              }
+            }
+          ]
+        },
+        "experience": [
+          {
+            "start": "2023-01-06",
+            "end": null,
+            "company": "Министерство сельского хозяйства и продовольствия Московской области ",
+            "company_id": "1832770",
+            "industry": null,
+            "industries": [],
+            "area": null,
+            "company_url": null,
+            "employer": {
+              "id": "2011346",
+              "name": "Министерство сельского хозяйства и продовольствия Московской области ",
+              "url": "https://api.hh.ru/employers/2011346",
+              "alternate_url": "https://hh.ru/employer/2011346",
+              "logo_urls": {
+                "90": "https://img.hhcdn.ru/employer-logo-round/1725238.png",
+                "original": "https://img.hhcdn.ru/employer-logo-original-round/1725237.png",
+                "240": "https://img.hhcdn.ru/employer-logo-round/1725239.png"
+              }
+            },
+            "position": "Ведущий юрисконсульт"
+          },
+          {
+            "start": "2016-04-01",
+            "end": null,
+            "company": "Аппарат Уполномоченного по правам человека в Московской области",
+            "company_id": null,
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "1",
+              "name": "Москва",
+              "url": "https://api.hh.ru/areas/1"
+            },
+            "company_url": "http://upch.mosreg.ru/",
+            "employer": null
+          },
+          {
+            "start": "2015-01-01",
+            "end": "2016-03-01",
+            "company": "ООО \"Центр Защиты и Права\"",
+            "company_id": null,
+            "industry": null,
+            "industries": [
+              {
+                "id": "44.390",
+                "name": "Безопасность, охранная деятельность"
+              },
+              {
+                "id": "44.393",
+                "name": "Консалтинговые услуги"
+              },
+              {
+                "id": "44.398",
+                "name": "Юридическое обслуживание"
+              }
+            ],
+            "area": {
+              "id": "2032",
+              "name": "Клин (Московская область)",
+              "url": "https://api.hh.ru/areas/2032"
+            },
+            "company_url": null,
+            "employer": null
+          },
+          {
+            "start": "2005-06-01",
+            "end": "2014-08-01",
+            "company": "Клинский городской суд Московской области",
+            "company_id": "1940020",
+            "industry": null,
+            "industries": [],
+            "area": {
+              "id": "2019",
+              "name": "Московская область",
+              "url": "https://api.hh.ru/areas/2019"
+            },
+            "company_url": "http://klin.mo.sudrf.ru/",
+            "employer": {
+              "id": "8552611",
+              "name": "Клинский городской суд Московской области",
+              "url": "https://api.hh.ru/employers/8552611",
+              "alternate_url": "https://hh.ru/employer/8552611",
+              "logo_urls": null
+            }
+          }
+        ],
+        "favorited": false,
+        "viewed": false,
+        "marked": false
+      },
+      "viewed_by_opponent": true,
+      "has_updates": true,
+      "messages_url": "https://api.hh.ru/negotiations/4915589778/messages",
+      "url": "https://api.hh.ru/negotiations/4915589778",
+      "counters": {
+        "messages": 1,
+        "unread_messages": 1
+      },
+      "chat_states": {
+        "response_reminder_state": {
+          "allowed": false
+        }
+      },
+      "source": "NEGOTIATION",
+      "chat_id": 4940040076,
+      "messaging_status": "ok",
+      "applicant_question_state": false,
+      "employer_state": {
+        "id": "response",
+        "name": "Отклик"
+      },
+      "funnel_stage": {
+        "id": "95235547",
+        "state": {
+          "id": "response",
+          "name": "Отклик"
+        },
+        "substate": null
+      },
+      "templates": [
+        {
+          "id": "consider",
+          "url": "https://api.hh.ru/message_templates/consider?topic_id=4915589778",
+          "name": "Приглашение на этап Подумать",
+          "quick": false
+        },
+        {
+          "id": "invite",
+          "url": "https://api.hh.ru/message_templates/invite?topic_id=4915589778",
+          "name": "Первичный контакт с кандидатом из базы резюме",
+          "quick": false
+        },
+        {
+          "id": "invite_after_response",
+          "url": "https://api.hh.ru/message_templates/invite_after_response?topic_id=4915589778",
+          "name": "Первичный контакт по отклику",
+          "quick": false
+        },
+        {
+          "id": "assessment_owner_tool",
+          "url": "https://api.hh.ru/message_templates/assessment_owner_tool?topic_id=4915589778",
+          "name": "Тестовое задание",
+          "quick": false
+        },
+        {
+          "id": "interview",
+          "url": "https://api.hh.ru/message_templates/interview?topic_id=4915589778",
+          "name": "Собеседование",
+          "quick": false
+        },
+        {
+          "id": "offer",
+          "url": "https://api.hh.ru/message_templates/offer?topic_id=4915589778",
+          "name": "Приглашение на Предложение о работе",
+          "quick": false
+        },
+        {
+          "id": "hired",
+          "url": "https://api.hh.ru/message_templates/hired?topic_id=4915589778",
+          "name": "Приглашение на Выход на работу",
+          "quick": false
+        },
+        {
+          "id": "discard_after_interview",
+          "url": "https://api.hh.ru/message_templates/discard_after_interview?topic_id=4915589778",
+          "name": "Не подходит по итогам интервью",
+          "quick": false
+        },
+        {
+          "id": "discard_after_response",
+          "url": "https://api.hh.ru/message_templates/discard_after_response?topic_id=4915589778",
+          "name": "Не подходит",
+          "quick": false
+        },
+        {
+          "id": "discard_by_applicant",
+          "url": "https://api.hh.ru/message_templates/discard_by_applicant?topic_id=4915589778",
+          "name": "Кандидат отказался",
+          "quick": false
+        },
+        {
+          "id": "discard_no_interaction",
+          "url": "https://api.hh.ru/message_templates/discard_no_interaction?topic_id=4915589778",
+          "name": "Не выходит на связь",
+          "quick": false
+        },
+        {
+          "id": "discard_vacancy_closed",
+          "url": "https://api.hh.ru/message_templates/discard_vacancy_closed?topic_id=4915589778",
+          "name": "Вакансия закрыта",
+          "quick": false
+        },
+        {
+          "id": "discard_to_other_vacancy",
+          "url": "https://api.hh.ru/message_templates/discard_to_other_vacancy?topic_id=4915589778",
+          "name": "Перевод на другую вакансию",
+          "quick": false
+        }
+      ],
+      "actions": [
+        {
+          "id": "consider",
+          "name": "Подумать",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/consider/4915589778",
+          "templates": [
+            {
+              "id": "consider",
+              "url": "https://api.hh.ru/message_templates/consider?topic_id=4915589778",
+              "name": "Приглашение на этап Подумать",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "consider",
+            "name": "Подумать"
+          }
+        },
+        {
+          "id": "phone_interview",
+          "name": "Первичный контакт",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/phone_interview/4915589778",
+          "templates": [
+            {
+              "id": "invite",
+              "url": "https://api.hh.ru/message_templates/invite?topic_id=4915589778",
+              "name": "Первичный контакт с кандидатом из базы резюме",
+              "quick": false
+            },
+            {
+              "id": "invite_after_response",
+              "url": "https://api.hh.ru/message_templates/invite_after_response?topic_id=4915589778",
+              "name": "Первичный контакт по отклику",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "phone_interview",
+            "name": "Первичный контакт"
+          },
+          "sub_actions": [
+            {
+              "id": "phone_interview_95235550",
+              "name": "Звонок",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235550/4915589778"
+            },
+            {
+              "id": "phone_interview_95235551",
+              "name": "Мессенджер",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235551/4915589778"
+            },
+            {
+              "id": "phone_interview_95235552",
+              "name": "Связаться еще раз",
+              "method": "PUT",
+              "url": "https://api.hh.ru/negotiations/phone_interview_95235552/4915589778"
+            }
+          ]
+        },
+        {
+          "id": "assessment",
+          "name": "Тестовое задание",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/assessment/4915589778",
+          "templates": [
+            {
+              "id": "assessment_owner_tool",
+              "url": "https://api.hh.ru/message_templates/assessment_owner_tool?topic_id=4915589778",
+              "name": "Тестовое задание",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "assessment",
+            "name": "Тестирование"
+          }
+        },
+        {
+          "id": "interview",
+          "name": "Собеседование",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/interview/4915589778",
+          "templates": [
+            {
+              "id": "interview",
+              "url": "https://api.hh.ru/message_templates/interview?topic_id=4915589778",
+              "name": "Собеседование",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "interview",
+            "name": "Собеседование"
+          }
+        },
+        {
+          "id": "offer",
+          "name": "Предложение о работе",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/offer/4915589778",
+          "templates": [
+            {
+              "id": "offer",
+              "url": "https://api.hh.ru/message_templates/offer?topic_id=4915589778",
+              "name": "Приглашение на Предложение о работе",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "offer",
+            "name": "Предложение о работе"
+          }
+        },
+        {
+          "id": "hired",
+          "name": "Выход на работу",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/hired/4915589778",
+          "templates": [
+            {
+              "id": "hired",
+              "url": "https://api.hh.ru/message_templates/hired?topic_id=4915589778",
+              "name": "Приглашение на Выход на работу",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            },
+            {
+              "id": "send_sms",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            },
+            {
+              "id": "address_id",
+              "required": false,
+              "required_arguments": [
+                {
+                  "id": "message"
+                }
+              ]
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "hired",
+            "name": "Выход на работу"
+          }
+        },
+        {
+          "id": "discard_by_employer",
+          "name": "Не подходит",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_by_employer/4915589778",
+          "templates": [
+            {
+              "id": "discard_after_interview",
+              "url": "https://api.hh.ru/message_templates/discard_after_interview?topic_id=4915589778",
+              "name": "Не подходит по итогам интервью",
+              "quick": false
+            },
+            {
+              "id": "discard_after_response",
+              "url": "https://api.hh.ru/message_templates/discard_after_response?topic_id=4915589778",
+              "name": "Не подходит",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_by_employer",
+            "name": "Не подходит"
+          }
+        },
+        {
+          "id": "discard_by_applicant",
+          "name": "Кандидат отказался",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_by_applicant/4915589778",
+          "templates": [
+            {
+              "id": "discard_by_applicant",
+              "url": "https://api.hh.ru/message_templates/discard_by_applicant?topic_id=4915589778",
+              "name": "Кандидат отказался",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_by_applicant",
+            "name": "Отказ: кандидат отказался"
+          }
+        },
+        {
+          "id": "discard_no_interaction",
+          "name": "Не выходит на связь",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_no_interaction/4915589778",
+          "templates": [
+            {
+              "id": "discard_no_interaction",
+              "url": "https://api.hh.ru/message_templates/discard_no_interaction?topic_id=4915589778",
+              "name": "Не выходит на связь",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_no_interaction",
+            "name": "Отказ: не выходит на связь"
+          }
+        },
+        {
+          "id": "discard_vacancy_closed",
+          "name": "Вакансия закрыта",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_vacancy_closed/4915589778",
+          "templates": [
+            {
+              "id": "discard_vacancy_closed",
+              "url": "https://api.hh.ru/message_templates/discard_vacancy_closed?topic_id=4915589778",
+              "name": "Вакансия закрыта",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_vacancy_closed",
+            "name": "Отказ: вакансия закрыта"
+          }
+        },
+        {
+          "id": "discard_to_other_vacancy",
+          "name": "Перевод на другую вакансию",
+          "method": "PUT",
+          "enabled": true,
+          "hidden": false,
+          "url": "https://api.hh.ru/negotiations/discard_to_other_vacancy/4915589778",
+          "templates": [
+            {
+              "id": "discard_to_other_vacancy",
+              "url": "https://api.hh.ru/message_templates/discard_to_other_vacancy?topic_id=4915589778",
+              "name": "Перевод на другую вакансию",
+              "quick": false
+            }
+          ],
+          "arguments": [
+            {
+              "id": "message",
+              "required": false,
+              "required_arguments": []
+            }
+          ],
+          "resulting_employer_state": {
+            "id": "discard_to_other_vacancy",
+            "name": "Отказ: перевод на другую вакансию"
+          }
+        }
+      ],
+      "tags": [
+        {
+          "id": "AWAITING_REPLY"
+        }
+      ],
+      "chat_bot": {
+        "auto_survey": {
+          "text": null
+        }
+      }
+    }
+  ],
+  "found": 239,
+  "pages": 5,
+  "per_page": 50
+}

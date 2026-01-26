@@ -23,6 +23,49 @@ REDIRECT_URI     = os.getenv("OAUTH_REDIRECT_URL")
 USER_AGENT       = os.getenv("USER_AGENT")
 
 
+# ------------------------------ METHODS for FAKE DATA for testing  ------------------------------
+
+def _get_fake_vacancies_data() -> Optional[dict]:
+
+    log_info_msg = "_get_fake_vacancies_data"
+    fake_vacancies_file_path = "/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_vacancies.json"
+    with open(fake_vacancies_file_path, "r", encoding="utf-8") as f:
+        vacancies_data = json.load(f)
+    logger.debug(f"{log_info_msg}: Vacancies data fetched from Fake Data file")
+    return vacancies_data
+
+
+def _get_fake_vacancy_description_data() -> Optional[dict]:
+    log_info_msg = "_get_fake_vacancy_description_data"
+    fake_vacancy_description_file_path = "/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_vacancy_description.json"
+    with open(fake_vacancy_description_file_path, "r", encoding="utf-8") as f:
+        vacancy_description = json.load(f)
+    logger.debug(f"{log_info_msg}: Vacancy description fetched from Fake Data file")
+    return vacancy_description
+
+
+def _get_fake_negotiations_collection_data() -> Optional[dict]:
+    log_info_msg = "_get_fake_negotiations_collection_data"
+    fake_negotiations_file_path = "/Users/gridavyv/HRVibe/hrvibe_core/test_data/fake_negotiations_collections_response_3_items.json"
+    with open(fake_negotiations_file_path, "r", encoding="utf-8") as f:
+        negotiations_collection_data = json.load(f)
+    logger.debug(f"{log_info_msg}: Negotiations collection data fetched from Fake Data file")
+    return negotiations_collection_data
+
+def _get_fake_resume_data(resume_id: str) -> Optional[dict]:
+    log_info_msg = "_get_fake_resume_data"
+
+    resume_ids = ["f6b8b4750004de943c008bd2846e6467663757", "d73ae1ab000009e52f008bd284736563726574", "fed8e6de000e0a7344008bd28469304355434b"]
+    if resume_id not in resume_ids:
+        logger.error(f"{log_info_msg}: Invalid resume ID: {resume_id}")
+        return None
+    
+    fake_resume_file_path = f"/Users/gridavyv/HRVibe/hrvibe_core/test_data/fake_resume_{resume_id}.json"
+    with open(fake_resume_file_path, "r", encoding="utf-8") as f:
+        resume_data = json.load(f)
+    logger.debug(f"{log_info_msg}: Resume data fetched from Fake Data file")
+    return resume_data
+
 # ------------------------------ USER related calls ------------------------------
 
 def get_user_info_from_hh(access_token: str) -> Optional[dict]:
@@ -77,27 +120,20 @@ def clean_user_info_received_from_hh(user_info: dict) -> dict:
 
 # ------------------------------ VACANCY related calls ------------------------------
 
-def _get_fake_vacancies_data() -> Optional[dict]:
-    """Load fake vacancies data from JSON file for testing when HH API is unavailable."""
-    try:
-        # Get project root (go up from shared_services to project root)
-        project_root = Path(__file__).parent.parent
-        fake_data_path = project_root / "test_data" / "fake_vacancies.json"
-        
-        if fake_data_path.exists():
-            with open(fake_data_path, "r", encoding="utf-8") as f:
-                fake_data = json.load(f)
-            logger.info(f"Loaded fake vacancies data from {fake_data_path}")
-            return fake_data
-        else:
-            logger.warning(f"Fake vacancies file not found at {fake_data_path}")
-            return None
-    except Exception as e:
-        logger.error(f"Error loading fake vacancies data: {e}", exc_info=True)
-        return None
-
 
 def get_employer_vacancies_from_hh(access_token: str, employer_id: str) -> Optional[dict]:
+    
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+
+    # Fallback to fake data when HH API is unavailable
+    return _get_fake_vacancies_data()
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
     '''
     url = f"https://api.hh.ru/employers/{employer_id}/vacancies/active"
     try:
@@ -124,16 +160,7 @@ def get_employer_vacancies_from_hh(access_token: str, employer_id: str) -> Optio
         return None
         '''
 
-    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
-    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
-    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
 
-    # Fallback to fake data when HH API is unavailable
-    return _get_fake_vacancies_data()
-
-    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
-    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
-    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
 
 def filter_open_employer_vacancies(vacancies_json: dict, status_to_filter: str) -> dict:
     """
@@ -165,6 +192,18 @@ def filter_open_employer_vacancies(vacancies_json: dict, status_to_filter: str) 
 
 
 def get_vacancy_description_from_hh(access_token: str, vacancy_id: str) -> Optional[dict]:
+    
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+
+    # Fallback to fake data when HH API is unavailable
+    return _get_fake_vacancy_description_data()
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    '''
     """Get vacancy description from HH.ru API and return it as a dictionary"""
     try:
         r = requests.get(
@@ -188,6 +227,7 @@ def get_vacancy_description_from_hh(access_token: str, vacancy_id: str) -> Optio
         else:
             logger.error(f"Error getting vacancy description: {e}", exc_info=True)
         return None
+    '''
 
 # ------------------------------ NEGOTIATIONS related calls ------------------------------
 
@@ -221,6 +261,7 @@ def get_available_employer_states_and_collections_negotiations(access_token: str
 
 
 def get_negotiations_by_collection(access_token: str, vacancy_id: str, collection: str) -> Optional[dict]:
+    
     try:
         url = f"https://api.hh.ru/negotiations/{collection}?vacancy_id={vacancy_id}"
         r = requests.get(
@@ -253,6 +294,16 @@ def get_negotiations_collection_with_status_response(access_token: str, vacancy_
     - per_page: number of items per page
     More info on the HH API: Список откликов/приглашений коллекции
     https://api.hh.ru/openapi/redoc#tag/Otklikipriglasheniya-rabotodatelya/operation/get-collection-negotiations-list"""
+    
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+    return _get_fake_negotiations_collection_data()
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+    '''
     try:
         page = 0
         per_page = 50
@@ -322,6 +373,7 @@ def get_negotiations_collection_with_status_response(access_token: str, vacancy_
         else:
             logger.error(f"Error get_negotiations_collection_with_status_response: {e}", exc_info=True)
         return None
+    '''
 
 
 def get_negotiations_by_state(access_token: str, vacancy_id: str, state_id: str) -> Optional[dict]:
@@ -371,10 +423,18 @@ def get_negotiations_messages(access_token: str, negotiation_id: str) -> Optiona
         return None
 
 
-def change_negotiation_collection_status_to_consider(
-    access_token: str, 
-    negotiation_id: str,
-    ):
+def change_negotiation_collection_status_to_consider(access_token: str, negotiation_id: str,):
+    
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+    return
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+
+'''
     try:
         target_collection_name = EMPLOYER_STATE_CONSIDER
         url = f"https://api.hh.ru/negotiations/{target_collection_name}/{negotiation_id}"
@@ -403,8 +463,19 @@ def change_negotiation_collection_status_to_consider(
             logger.error(f"Error change_negotiation_collection_status_to_consider: {e}", exc_info=True)
         return None
 
+'''
 
 def send_negotiation_message(access_token: str, negotiation_id: str, user_message: str):
+    
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+    return
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+    '''
     try:
         user_message_formatted = user_message.strip()
         url = f"https://api.hh.ru/negotiations/{negotiation_id}/messages"
@@ -433,7 +504,7 @@ def send_negotiation_message(access_token: str, negotiation_id: str, user_messag
         else:
             logger.error(f"Error sending negotiation message: {e}", exc_info=True)
         return None
-
+    '''
 
 def get_negotiations_history(access_token: str, resume_id: str):
     try:
@@ -461,6 +532,16 @@ def get_negotiations_history(access_token: str, resume_id: str):
 # ------------------------------ RESUME related calls ------------------------------
 
 def get_resume_info(access_token: str, resume_id: str):
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    
+    return _get_fake_resume_data(resume_id)
+
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+    #  !!!!!!! DELETE AFTER TESTING !!!!!!!
+
+    '''
     try:
         url = f"https://api.hh.ru/resumes/{resume_id}"
         r = requests.get(
@@ -481,7 +562,7 @@ def get_resume_info(access_token: str, resume_id: str):
         else:
             logger.error(f"Error getting resume info: {e}", exc_info=True)
         return None
-
+    '''
 
 # ------------------------------ SUPPORTING functions ------------------------------
 

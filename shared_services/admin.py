@@ -325,7 +325,7 @@ async def admin_get_new_applicant_videos_command(update: Update, context: Contex
 
 
 
-async def admin_analyze_resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def admin_analyze_resume_and_get_recommendation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     #TAGS: [admin]
     """
     Admin command to analyze resume for a specific negotiation.
@@ -355,10 +355,12 @@ async def admin_analyze_resume_command(update: Update, context: ContextTypes.DEF
                 if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
                     # Import here to avoid circular dependency
                     logger.debug(f"{log_info_msg}: call manager_bot command")
-                    from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command
+                    from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command, get_resume_recommendation_text_from_resume_records
                     await source_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
                     await analyze_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
+                    recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
                     await send_message_to_user(update, context, text=f"Resume analysis is done for negotiation {negotiation_id}.")
+                    await send_message_to_user(update, context, text=recommendation_text)
                 else:
                     raise ValueError(f"Negotiation {negotiation_id} not found in database.")
             else:

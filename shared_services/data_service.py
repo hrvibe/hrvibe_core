@@ -27,8 +27,10 @@ from shared_services.db_service import (
     is_boolean_field_true_in_db,
     get_column_value_in_db,
 )
+from shared_services.db_service import get_column_value_by_field
 
-from database import Base, Managers
+
+from database import Base, Managers, Vacancies, Negotiations
 
 
 def create_json_file_with_dictionary_content(file_path: Path, content_to_write: dict) -> None:
@@ -483,26 +485,24 @@ def get_negotiation_id_from_resume_record(bot_user_id: str, vacancy_id: str, res
     return resume_records[resume_record_id]["negotiation_id"]
 
 
-def get_resume_recommendation_text_from_resume_records(bot_user_id: str, vacancy_id: str, resume_record_id: str) -> str:
+def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> str:
     # TAGS: [get_data]
-    """Get resume recommendation text from resume records."""
-    resume_records_file_path = get_resume_records_file_path(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-    # Read existing data
-    with open(resume_records_file_path, "r", encoding="utf-8") as f:
-        resume_records = json.load(f)
-    
-    resume_record_id_data = resume_records[resume_record_id]
+    func_name = "get_resume_recommendation_text_from_resume_records"
+    log_info_msg = f"{func_name}. Arguments: {negotiation_id}"
+    logger.info(f"{log_info_msg}: started")
 
     # ----- GET VALUES for TEXT -----
-
-    first_name = resume_record_id_data["first_name"]
-    last_name = resume_record_id_data["last_name"]
-    final_score = resume_record_id_data["ai_analysis"]["final_score"]
-    recommendation = resume_record_id_data["ai_analysis"]["recommendation"]
-    attention = resume_record_id_data["ai_analysis"]["requirements_compliance"]["attention"]
+    
+    vacancy_id = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="vacancy_id")
+    vacancy_name = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="name")
+    first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="applicant_first_name")
+    last_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="applicant_last_name")
+    final_score = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_score")
+    recommendation = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_analysis")["recommendation"]
+    attention = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_analysis")["requirements_compliance"]["attention"]
 
     if not first_name or not last_name or not final_score or not recommendation or not attention:
-        raise ValueError(f"Missing required values for recommendation text for 'resume_record_id': {resume_record_id}")
+        raise ValueError(f"{log_info_msg}: Missing required values")
     
     # ----- FORMAT ATTENTION list to present each item on a new line -----
 
@@ -514,6 +514,8 @@ def get_resume_recommendation_text_from_resume_records(bot_user_id: str, vacancy
     # ----- FORMAT RECOMMENDATION TEXT and send message -----
 
     recommendation_text = (
+        f"<b>Вакансия</b>: {vacancy_name}\n"
+        f"--------------------\n"
         f"<b>Имя</b>: {first_name} {last_name}\n"
         f"<b>Общий балл</b>: <b>{final_score}</b> из 10\n"
         f"--------------------\n"

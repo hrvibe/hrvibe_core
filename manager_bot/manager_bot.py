@@ -971,13 +971,13 @@ async def read_vacancy_description_command(update: Update, context: ContextTypes
     Called from: 'download_incoming_video_locally' from file "services.video_service.py".
     Triggers: nothing.
     Sends notification to admin if fails"""
+
+    log_info_msg = "read_vacancy_description_command"
     
     # ----- IDENTIFY USER and pull required data from records -----
     
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"read_vacancy_description_command started. user_id: {bot_user_id}")
-
-    await send_message_to_user(update, context, text="!!! Поздравляю !!! ты дошел до этапа получения описания вакансии.")
+    logger.info(f"{log_info_msg}: start")
 
     access_token = get_column_value_in_db(
         db_model=Managers,
@@ -1006,46 +1006,30 @@ async def read_vacancy_description_command(update: Update, context: ContextTypes
     try:
 
         # ----- PULL VACANCY DESCRIPTION from HH and save it to file -----
-        """
+        
         vacancy_description = get_vacancy_description_from_hh(access_token=access_token, vacancy_id=target_vacancy_id)
-        """
 
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
-
-        with open("/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_vacancy_description.json", "r", encoding="utf-8") as f:
-            vacancy_description = json.load(f)
-        logger.debug(f"Vacancy description fetched from fake file: {vacancy_description}")
-
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
-        # !!! FOR TESTING ONLY !!!
 
         if vacancy_description is None:
-            logger.error(f"Failed to get vacancy description from HH: {target_vacancy_name}")
+            logger.error(f"{log_info_msg}: Failed to get vacancy description from HH: {target_vacancy_name}")
             return
         
         await send_message_to_user(update, context, text=INFO_ABOUT_ANALYZING_VACANCY_TEXT)
         
         # ----- SAVE VACANCY DESCRIPTION to file and update records -----
 
-        """
-        create_json_file_with_dictionary_content(file_path=vacancy_description_file_path, content_to_write=vacancy_description)
-        update_user_records_with_top_level_key(record_id=bot_user_id, key="vacancy_description_recieved", value="yes")
-        """
         update_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=target_vacancy_id, target_field_name="description_recieved", new_value=True)
         update_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=target_vacancy_id, target_field_name="description_json", new_value=vacancy_description)
 
     
     except Exception as e:
-        logger.error(f"Failed to read vacancy description: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to read vacancy description: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error read_vacancy_description_command: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
     
 
@@ -1060,18 +1044,21 @@ async def define_sourcing_criterias_command(update: Update, context: ContextType
     Called from: 'handle_chat_menu_action'.
     Triggers: 'define_sourcing_criterias_triggered_by_admin_command'.
     """
+
+    log_info_msg = "define_sourcing_criterias_command"
+
     try:
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"define_sourcing_criterias_command: started. user_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
         target_vacancy_id = get_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="id")
         await define_sourcing_criterias_triggered_by_admin_command(vacancy_id=target_vacancy_id)
     except Exception as e:
-        logger.error(f"define_sourcing_criterias_command: Failed to execute: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to execute: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error define_sourcing_criterias_command: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -1083,9 +1070,11 @@ async def define_sourcing_criterias_triggered_by_admin_command(vacancy_id: str) 
     Triggers: nothing.
     """
 
+    log_info_msg = "define_sourcing_criterias_triggered_by_admin_command"
+
     try:
 
-        logger.info(f"define_sourcing_criterias_triggered_by_admin_command: started. vacancy_id: {vacancy_id}")
+        logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
 
         # ----- VALIDATE VACANCY IS SELECTED and has description and sourcing criterias exist -----
 
@@ -1121,7 +1110,7 @@ async def define_sourcing_criterias_triggered_by_admin_command(vacancy_id: str) 
         )  
 
     except Exception as e:
-        logger.error(f"Error in define_sourcing_criterias_command: {e}", exc_info=True)
+        logger.error(f"Error {log_info_msg}: {e}", exc_info=True)
         raise 
 
 
@@ -1136,20 +1125,13 @@ async def get_sourcing_criterias_from_ai_and_save_to_db(
     This function is executed through TaskQueue.
     """
 
+    log_info_msg = "get_sourcing_criterias_from_ai_and_save_to_db"
+
     # ----- IDENTIFY USER and pull required data from records -----
 
-    logger.info(f"get_sourcing_criterias_from_ai_and_save_to_file: started. vacancy_id: {vacancy_id}")
+    logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
 
-    try:
-        '''
-        # ----- CALL AI ANALYZER -----
-
-        vacancy_analysis_result = analyze_vacancy_with_ai(
-            vacancy_data=vacancy_description,
-            prompt_vacancy_analysis_text=prompt_text
-        )
-        '''
-
+    '''
         # !!! FOR TESTING ONLY !!!
         # !!! FOR TESTING ONLY !!!
         # !!! FOR TESTING ONLY !!!
@@ -1161,6 +1143,15 @@ async def get_sourcing_criterias_from_ai_and_save_to_db(
         # !!! FOR TESTING ONLY !!!
         # !!! FOR TESTING ONLY !!!
         # !!! FOR TESTING ONLY !!!  
+    '''
+
+    try:
+        # ----- CALL AI ANALYZER -----
+
+        vacancy_analysis_result = analyze_vacancy_with_ai(
+            vacancy_data=vacancy_description,
+            prompt_vacancy_analysis_text=prompt_text
+        )
 
         # ----- SAVE SOURCING CRITERIAS to DB -----
 
@@ -1179,6 +1170,9 @@ async def send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id:
     This function is triggered by admin command and therefore works with `Application`
     instance instead of `update` / `context`.
     """
+
+    log_info_msg = "send_to_user_sourcing_criterias_triggered_by_admin_command"
+    logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
 
     try:
 
@@ -1206,7 +1200,7 @@ async def send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id:
         else:
             raise ValueError(f"Missing required application or bot instance for sending message to user {bot_user_id}")
     except Exception as e:
-        logger.error(f"Failed to send sourcing criterias result to user: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to send sourcing criterias result to user: {e}", exc_info=True)
         raise
 
 
@@ -1217,8 +1211,10 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
     command and not directly by the user.
     """
 
+    log_info_msg = "ask_sourcing_criterias_confirmation_via_application"
+
     try:
-        logger.info(f"ask_sourcing_criterias_confirmation_via_application started. user_id: {bot_user_id}")
+        logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
 
         # ----- CHECK IF USER EXISTS IN DATABASE -----
         if not is_value_in_db(db_model=Managers, field_name="id", value=bot_user_id):
@@ -1228,7 +1224,7 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
                     text=FAIL_TO_FIND_USER_IN_RECORDS_TEXT,
                 )
             raise ValueError(
-                f"ask_sourcing_criterias_confirmation_via_application: user {bot_user_id} not found in database"
+                f"User {bot_user_id} not found in database"
             )
 
         # Build options (which will be tuples of (button_text, callback_data))
@@ -1260,12 +1256,12 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
                         # user_data is read-only (mappingproxy), can't create new keys
                         pass
         except (TypeError, AttributeError) as e:
-            logger.debug(f"application.user_data is not writable: {e}")
+            logger.debug(f"{log_info_msg}: application.user_data is not writable: {e}")
         
         # Fallback to module-level storage if application.user_data is read-only
         if not stored_in_application:
             _sourcing_criterias_confirmation_options_storage[user_id_int] = answer_options
-            logger.debug(f"Stored sourcing_criterias_confirmation_answer_options in module-level storage for user {bot_user_id}")
+            logger.debug(f"{log_info_msg}: Stored sourcing_criterias_confirmation_answer_options in module-level storage for user {bot_user_id}")
 
         # Build inline keyboard and send question
         keyboard = [
@@ -1281,13 +1277,12 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
                 reply_markup=reply_markup,
             )
             logger.info(
-                "ask_sourcing_criterias_confirmation_via_application: sourcing criterias "
-                "confirmation question with options asked"
+                f"{log_info_msg}: sourcing criterias. confirmation question with options asked"
             )
 
     except Exception as e:
         logger.error(
-            f"Failed to ask sourcing criterias confirmation via Application: {e}",
+            f"{log_info_msg}: Failed to ask sourcing criterias confirmation via Application: {e}",
             exc_info=True,
         )
         # Notify admin about the error if possible
@@ -1296,13 +1291,13 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
                 await send_message_to_admin(
                     application=application,
                     text=(
-                        f"⚠️ Error ask_sourcing_criterias_confirmation_via_application: {e}\n"
+                        f"⚠️ Error {log_info_msg}: {e}\n"
                         f"User ID: {bot_user_id if bot_user_id else 'unknown'}"
                     ),
                 )
         except Exception:
             logger.error(
-                "Failed to send admin notification from ask_sourcing_criterias_confirmation_via_application",
+                f"{log_info_msg}: Failed to send admin notification",
                 exc_info=True,
             )
 
@@ -1315,20 +1310,22 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     - If user agrees to sourcing criterias, triggers 'start_sourcing_command'.
     - If user does not agree to sourcing criterias, asks user for feedback"""
 
+    log_info_msg = "handle_answer_sourcing_criterias_confirmation"
+
     # ----- IDENTIFY USER and pull required data from records -----
 
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"handle_answer_sourcing_criterias_confirmation: started. user_id: {bot_user_id}")
+    logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
     
     # ------- UNDERSTAND WHAT BUTTON was clicked and get "callback_data" from it -------
 
     # Get the "callback_data" extracted from "update.callback_query" object created once button clicked
     selected_callback_code = await handle_answer(update, context)
-    logger.debug(f"handle_answer_sourcing_criterias_confirmation: Selected callback code: {selected_callback_code}")
+    logger.debug(f"{log_info_msg}: Selected callback code: {selected_callback_code}")
 
     # Now you can use callback_data or selected_option for your logic
     if selected_callback_code is None:
-        logger.warning(f"handle_answer_sourcing_criterias_confirmation: selected_callback_code is None")
+        logger.warning(f"{log_info_msg}: selected_callback_code is None")
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
 
@@ -1347,16 +1344,16 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
                 )
                 if sourcing_criterias_confirmation_answer_options:
                     logger.debug(
-                        f"handle_answer_sourcing_criterias_confirmation: Retrieved sourcing_criterias_confirmation_answer_options from application.user_data for user {bot_user_id}"
+                        f"{log_info_msg}: Retrieved sourcing_criterias_confirmation_answer_options from application.user_data for user {bot_user_id}"
                     )
         except (ValueError, KeyError, AttributeError) as e:
-            logger.debug(f"handle_answer_sourcing_criterias_confirmation: Failed to retrieve options from application.user_data: {e}")
+            logger.debug(f"{log_info_msg}: Failed to retrieve options from application.user_data: {e}")
     
     # Fallback to module-level storage if not found in application.user_data
     if not sourcing_criterias_confirmation_answer_options and user_id_int in _sourcing_criterias_confirmation_options_storage:
         sourcing_criterias_confirmation_answer_options = _sourcing_criterias_confirmation_options_storage[user_id_int]
         logger.debug(
-            f"handle_answer_sourcing_criterias_confirmation: Retrieved sourcing_criterias_confirmation_answer_options from module-level storage for user {bot_user_id}"
+            f"{log_info_msg}: Retrieved sourcing_criterias_confirmation_answer_options from module-level storage for user {bot_user_id}"
         )
     
     # find selected button text from callback_data
@@ -1379,7 +1376,7 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
 
     # If "options" is NOT an empty list and we found a matching button text, execute the following code
     if sourcing_criterias_confirmation_answer_options and selected_button_text:
-        logger.debug(f"handle_answer_sourcing_criterias_confirmation: sourcing_criterias_confirmation_answer_options exists and selected_button_text: {selected_button_text}")
+        logger.debug(f"{log_info_msg}: sourcing_criterias_confirmation_answer_options exists and selected_button_text: {selected_button_text}")
         await send_message_to_user(update, context, text=f"Вы выбрали: '{selected_button_text}'")
     else:
         # No options available or button text not found, inform user and return
@@ -1398,7 +1395,7 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     # ----- UPDATE USER RECORDS with selected vacancy data -----
 
     
-    logger.debug(f"handle_answer_sourcing_criterias_confirmation: selected_callback_code: {selected_callback_code}")
+    logger.debug(f"{log_info_msg}: selected_callback_code: {selected_callback_code}")
     sourcing_criterias_confirmation_user_decision = get_decision_status_from_selected_callback_code(selected_callback_code=selected_callback_code)
     
     # Update user records with selected vacancy data
@@ -1409,7 +1406,7 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     current_time = datetime.now(timezone.utc).isoformat()
     update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="sourcing_criterias_confirmation_time", new_value=current_time)
     
-    logger.debug(f"Sourcing criterias confirmation user decision: {sourcing_criterias_confirmation_user_decision} at {current_time}")
+    logger.debug(f"{log_info_msg}: Sourcing criterias confirmation user decision: {sourcing_criterias_confirmation_user_decision} at {current_time}")
 
     # ----- IF USER CHOSE "YES" download video to local storage -----              
 
@@ -1435,9 +1432,11 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
 async def source_negotiations_triggered_by_admin_command(vacancy_id: str) -> None:
     # TAGS: [resume_related]
     """Sources negotiations collection."""
-    
+
+    log_info_msg = "source_negotiations_triggered_by_admin_command"
+
     try:
-        logger.info(f"source_negotiations_triggered_by_admin_command started. vacancy_id: {vacancy_id}")
+        logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
 
         # ----- IDENTIFY USER and pull required data from records -----
         
@@ -1452,21 +1451,8 @@ async def source_negotiations_triggered_by_admin_command(vacancy_id: str) -> Non
         employer_state = EMPLOYER_STATE_RESPONSE
 
         #Get collection of negotiations data for the target collection status "response"
-        """
+        
         negotiations_collection_data = get_negotiations_collection_with_status_response(access_token=access_token, vacancy_id=vacancy_id)
-        """
-
-        # !!! TESTING !!!
-        # !!! TESTING !!!
-        # !!! TESTING !!!
-
-        fake_negotiations_file_path = "/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_negotiations_collections_response.json"
-        with open(fake_negotiations_file_path, "r", encoding="utf-8") as f:
-            negotiations_collection_data = json.load(f)
-
-        # !!! TESTING !!!
-        # !!! TESTING !!!
-        # !!! TESTING !!!
 
         await parse_negotiations_collection_to_db(vacancy_id=vacancy_id, negotiations_json=negotiations_collection_data)
 
@@ -1574,7 +1560,9 @@ async def send_message_to_applicant_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
     """Sends message to applicant. Triggers 'change_employer_state_command'."""
     
-    logger.info(f"send_message_to_applicant_command: started. negotiation_id: {negotiation_id}")
+
+    log_info_msg = "send_message_to_applicant_command"
+    logger.info(f"{log_info_msg}: started. negotiation_id: {negotiation_id}")
 
     # ----- IDENTIFY USER and pull required data from records -----
     
@@ -1586,11 +1574,11 @@ async def send_message_to_applicant_command(negotiation_id: str) -> None:
     negotiation_message_text = APPLICANT_MESSAGE_TEXT_WITHOUT_LINK + f"{tg_link}"
     try:
         send_negotiation_message(access_token=access_token, negotiation_id=negotiation_id, user_message=negotiation_message_text)
-        logger.info(f"send_message_to_applicant_command: Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
+        logger.info(f"{log_info_msg}: Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="link_to_tg_bot_sent", new_value=True)
-        logger.info(f"send_message_to_applicant_command: DB record updated with 'link_to_tg_bot_sent' status as True for negotiation ID: {negotiation_id}")
+        logger.info(f"{log_info_msg}: DB record updated with 'link_to_tg_bot_sent' status as True for negotiation ID: {negotiation_id}")
     except Exception as send_err:
-        logger.error(f"send_message_to_applicant_command: Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
         # stop method execution in this case, because no need to update resume_records and negotiations status
         return
 
@@ -1599,7 +1587,8 @@ async def change_employer_state_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
     """Trigger send message to applicant command handler - allows users to send message to applicant."""
 
-    logger.info(f"change_employer_state_command: started. negotiation_id: {negotiation_id}")
+    log_info_msg = "change_employer_state_command"
+    logger.info(f"{log_info_msg}: started. negotiation_id: {negotiation_id}")
     
     # ----- IDENTIFY USER and pull required data from records -----
         
@@ -1610,15 +1599,15 @@ async def change_employer_state_command(negotiation_id: str) -> None:
    # ----- CHANGE EMPLOYER STATE  -----
 
     #await update.message.reply_text(f"Изменяю статус приглашения кандидата на {NEW_EMPLOYER_STATE}...")
-    logger.debug(f"change_employer_state_command: negotiation ID: {negotiation_id} to {EMPLOYER_STATE_CONSIDER}")
+    logger.debug(f"{log_info_msg}: negotiation ID: {negotiation_id} to {EMPLOYER_STATE_CONSIDER}")
     try:
         change_negotiation_collection_status_to_consider(
             access_token=access_token,
             negotiation_id=negotiation_id
         )
-        logger.info(f"change_employer_state_command:Collection status of negotiation ID: {negotiation_id} has been successfully changed to {EMPLOYER_STATE_CONSIDER}")
+        logger.info(f"{log_info_msg}: Collection status of negotiation ID: {negotiation_id} has been successfully changed to {EMPLOYER_STATE_CONSIDER}")
     except Exception as status_err:
-        logger.error(f"change_employer_state_command: Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
 
 
 async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
@@ -1801,10 +1790,20 @@ async def resume_analysis_from_ai_to_user_sort_resume(
         raise
 
 
+async def get_recommendation_text_triggered_by_admin_command(negotiation_id: str) -> str:
+    # TAGS: [recommendation_related]
+    """Get recommendation text for resumes."""
+    func_name = "get_recommendation_text_triggered_by_admin_command"
+    log_info_msg = f"{func_name}. Arguments: {negotiation_id}"
+    logger.info(f"{log_info_msg}: started")
+
+    recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
+    
+    return recommendation_text
 
 
 
-
+'''
 async def recommend_resumes_triggered_by_admin_command(bot_user_id: str, application: Application) -> None:
     # TAGS: [recommendation_related]
     """Recommend resumes. Criteria:
@@ -1989,7 +1988,7 @@ async def handle_invite_to_interview_button(update: Update, context: ContextType
                 application=context.application,
                 text=f"⚠️ Error handling invite to interview: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
-
+'''
 
 
 ########################################################################################
