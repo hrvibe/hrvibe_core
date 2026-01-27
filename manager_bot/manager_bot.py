@@ -1798,6 +1798,10 @@ async def resume_analysis_from_ai_to_user_sort_resume(
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_analysis", new_value=ai_analysis_result)
         logger.debug(f"{log_info_msg}: updated resume ai analysis in database")
 
+        resume_ai_score = str(ai_analysis_result.get("final_score", 0))
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_score", new_value=resume_ai_score)
+        logger.debug(f"{log_info_msg}: updated resume ai score in database")
+
         # Sort resume based on final score
         resume_ai_score = int(ai_analysis_result.get("final_score", 0))
         if resume_ai_score >= RESUME_PASSED_SCORE:
@@ -1814,19 +1818,6 @@ async def resume_analysis_from_ai_to_user_sort_resume(
     except Exception as e:
         logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         raise
-
-
-async def get_recommendation_text_triggered_by_admin_command(negotiation_id: str) -> str:
-    # TAGS: [recommendation_related]
-    """Get recommendation text for resumes."""
-    func_name = "get_recommendation_text_triggered_by_admin_command"
-    log_info_msg = f"{func_name}. Arguments: {negotiation_id}"
-    logger.info(f"{log_info_msg}: started")
-
-    recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
-    
-    return recommendation_text
-
 
 
 '''

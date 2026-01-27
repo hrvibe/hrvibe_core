@@ -26,8 +26,9 @@ from shared_services.admin import (
     admin_update_db_command,
     admin_send_tg_link_and_change_employer_state_to_applicants_command,
     admin_get_new_applicant_videos_command,
-    admin_analyze_resume_and_get_recommendation_command,
-    admin_source_negotiations
+    admin_source_negotiations,
+    admin_get_resume_recommendation_command,
+    admin_source_and_analyze_resume_command
 )
 
 
@@ -100,7 +101,8 @@ async def run_manager_bot() -> None:
     application.add_handler(CommandHandler("admin_source_negotiations", admin_source_negotiations))
     application.add_handler(CommandHandler("admin_touch_new_applicants", admin_send_tg_link_and_change_employer_state_to_applicants_command))
     application.add_handler(CommandHandler("admin_get_new_applicant_videos", admin_get_new_applicant_videos_command))
-    application.add_handler(CommandHandler("admin_analyze_resume", admin_analyze_resume_and_get_recommendation_command))
+    application.add_handler(CommandHandler("admin_source_and_analyze_resume", admin_source_and_analyze_resume_command))
+    application.add_handler(CommandHandler("admin_get_resume_recommendation", admin_get_resume_recommendation_command))
     application.add_handler(CommandHandler("admin_recommend", admin_recommend_resumes_command))
     application.add_handler(CommandHandler("admin_send_message", admin_send_message_command))
     application.add_handler(CommandHandler("admin_pull_file", admin_pull_file_command))

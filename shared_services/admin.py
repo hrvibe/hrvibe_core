@@ -377,14 +377,14 @@ async def admin_get_new_applicant_videos_command(update: Update, context: Contex
 
 
 
-async def admin_analyze_resume_and_get_recommendation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def admin_source_and_analyze_resume_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     #TAGS: [admin]
     """
     Admin command to analyze resume for a specific negotiation.
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
-    log_info_msg = "admin_analyze_resume_command"
+    log_info_msg = "admin_source_and_analyze_resume_command"
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
@@ -429,9 +429,7 @@ async def admin_analyze_resume_and_get_recommendation_command(update: Update, co
                     
                     if resume_ai_analysis is not None:
                         # Analysis is complete, get recommendation
-                        recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
                         await send_message_to_user(update, context, text=f"😎 Resume analysis completed for negotiation {negotiation_id}.")
-                        await send_message_to_user(update, context, text=recommendation_text)
                     else:
                         # Timeout reached
                         await send_message_to_user(update, context, text=f"⏱️ Resume analysis for negotiation {negotiation_id} is taking longer than expected. Please try again later or check the task queue status.")
@@ -448,9 +446,57 @@ async def admin_analyze_resume_and_get_recommendation_command(update: Update, co
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
-            )
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}")
 
+
+
+async def admin_get_resume_recommendation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    #TAGS: [admin]
+    """
+    Admin command to analyze resume for a specific negotiation.
+    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
+    """
+
+    log_info_msg = "admin_get_resume_recommendation_command"
+
+    try:
+        # ----- IDENTIFY USER and pull required data from records -----
+
+        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+        logger.info(f"{log_info_msg}: start")
+
+        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
+
+        if not await _is_user_admin(bot_user_id=bot_user_id):
+            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
+            return
+
+        # ----- PARSE COMMAND ARGUMENTS -----
+
+        negotiation_id = None
+        if context.args and len(context.args) == 1:
+            negotiation_id = context.args[0]
+            if negotiation_id:
+                if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
+                    # Import here to avoid circular dependency
+                    logger.debug(f"{log_info_msg}: call manager_bot command")
+                    from shared_services.data_service import get_resume_recommendation_text_from_resume_records
+                    recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
+                    await send_message_to_user(update, context, text=recommendation_text, parse_mode="HTML")
+                else:
+                    raise ValueError(f"Negotiation {negotiation_id} not found in database.")
+            else:
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <negotiation_id>")
+        else:
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <negotiation_id>")
+
+    except Exception as e:
+        logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}")
 
 
 async def admin_recommend_resumes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

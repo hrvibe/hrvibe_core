@@ -508,53 +508,63 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
         raise ValueError(f"{log_info_msg}: resume_ai_analysis not found for negotiation {negotiation_id}. Resume analysis may not have been completed yet.")
     
     # Safely access nested values
-    recommendation = resume_ai_analysis.get("recommendation")
-    requirements_compliance = resume_ai_analysis.get("requirements_compliance", {})
-    attention = requirements_compliance.get("attention")
-
-    # Validate required fields (attention is optional)
-    if not first_name or not last_name or not final_score or not recommendation:
-        raise ValueError(f"{log_info_msg}: Missing required values. first_name={first_name}, last_name={last_name}, final_score={final_score}, recommendation={recommendation}")
     
-    # ----- FORMAT ATTENTION list to present each item on a new line -----
-    # attention is optional, provide default if missing
+    recommendation_str = resume_ai_analysis.get("recommendation")
 
-    if attention is None or attention == "":
-        attention_text = "Нет особых замечаний."
-    elif isinstance(attention, list):
-        if len(attention) > 0:
-            attention_text = "\n".join(f"- {item}" for item in attention)
-        else:
-            attention_text = "Нет особых замечаний."
+    # 'must' is a list of dicts like [{'Requirement 1': 10}, {'Requirement 2': 10}, ...]
+    must_requirements_raw = resume_ai_analysis.get("requirements_compliance", {}).get("must") or []
+    if isinstance(must_requirements_raw, list):
+        lines = []
+        for item in must_requirements_raw:
+            if isinstance(item, dict) and item:
+                key, value = next(iter(item.items()))
+                lines.append(f"- {key}: {value}")
+            else:
+                lines.append(f"- {item}")
+        must_requirements_str = "\n".join(lines)
     else:
-        attention_text = str(attention)
+        must_requirements_str = str(must_requirements_raw)
 
-    # ----- FORMAT RECOMMENDATION TEXT and send message -----
-    # Handle recommendation - it might be a dict or string
-    if isinstance(recommendation, dict):
-        # If recommendation is a dict, format it nicely
-        recommendation_str = ""
-        if "decision" in recommendation:
-            recommendation_str += f"Решение: {recommendation['decision']}\n"
-        if "priority" in recommendation:
-            recommendation_str += f"Приоритет: {recommendation['priority']}\n"
-        if "rationale" in recommendation:
-            recommendation_str += f"Обоснование: {recommendation['rationale']}"
-        if not recommendation_str:
-            recommendation_str = json.dumps(recommendation, ensure_ascii=False, indent=2)
+    nice_to_have_requirements_raw = resume_ai_analysis.get("requirements_compliance", {}).get("nice_to_have") or []
+    if isinstance(nice_to_have_requirements_raw, list):
+        lines = []
+        for item in nice_to_have_requirements_raw:
+            if isinstance(item, dict) and item:
+                key, value = next(iter(item.items()))
+                lines.append(f"- {key}: {value}")
+            else:
+                lines.append(f"- {item}")
+        nice_to_have_requirements_str = "\n".join(lines)
     else:
-        recommendation_str = str(recommendation)
+        nice_to_have_requirements_str = str(nice_to_have_requirements_raw)
+
+    attention_text = resume_ai_analysis.get("requirements_compliance").get("attention")
+    if isinstance(attention_text, list):
+        attention_text = "\n".join(
+            f"- {item}" if isinstance(item, str) else f"- {item}"
+            for item in attention_text
+        )
+    else:
+        attention_text = str(attention_text)
+
 
     recommendation_text = (
-        f"<b>Вакансия</b>: {vacancy_name}\n"
-        f"--------------------\n"
-        f"<b>Имя</b>: {first_name} {last_name}\n"
-        f"<b>Общий балл</b>: <b>{final_score}</b> из 10\n"
-        f"--------------------\n"
-        f"<b>Рекомендация:</b>\n{recommendation_str}\n"
-        f"--------------------\n"
+    f"<b>Вакансия</b>: {vacancy_name}\n"
+    f"--------------------\n"
+    f"<b>Имя</b>: {first_name} {last_name}\n"
+    f"<b>Общий балл</b>: {final_score} из 10\n"
+    f"--------------------\n"
+    f"<b>Рекомендация:</b>\n{recommendation_str}\n"
+    f"--------------------\n"
+    f"<b>Обязательные требования:</b>\n{must_requirements_str}\n"
+    f"--------------------\n"
+    f"<b>Желательные требования:</b>\n{nice_to_have_requirements_str}\n")
+
+    if attention_text is not None:
+        recommendation_text += f"--------------------\n"
         f"<b>Обратить внимание:</b>\n{attention_text}"
-    )
+
+
     return recommendation_text
 
 
