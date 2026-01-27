@@ -347,7 +347,8 @@ async def admin_get_new_applicant_videos_command(update: Update, context: Contex
                         negotiation_id = video_file.split("_")[2]
                         if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
                             update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_received", new_value=True)
-                            update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_path", new_value=video_file)
+                            file_path = os.path.join(video_dir_path, video_file)
+                            update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_path", new_value=file_path)
                             output_text_negotiation_id += f"{negotiation_id}\n"
                         else:
                             output_text_negotiation_id += f"Negotiation {negotiation_id} not found in database.\n"
@@ -407,7 +408,7 @@ async def admin_source_and_analyze_resume_command(update: Update, context: Conte
                 if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
                     # Import here to avoid circular dependency
                     logger.debug(f"{log_info_msg}: call manager_bot command")
-                    from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command, get_resume_recommendation_text_from_resume_records
+                    from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command
                     await source_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
                     await analyze_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
                     
@@ -480,9 +481,9 @@ async def admin_get_resume_recommendation_command(update: Update, context: Conte
                 if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
                     # Import here to avoid circular dependency
                     logger.debug(f"{log_info_msg}: call manager_bot command")
-                    from shared_services.data_service import get_resume_recommendation_text_from_resume_records
-                    recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
-                    await send_message_to_user(update, context, text=recommendation_text, parse_mode="HTML")
+                    from manager_bot.manager_bot import send_recommendation_text_to_specified_user, send_recommendation_video_to_specified_user_without_questionnaire
+                    await send_recommendation_text_to_specified_user(whom_to_send=bot_user_id, negotiation_id=negotiation_id)
+                    await send_recommendation_video_to_specified_user_without_questionnaire(whom_to_send=bot_user_id, negotiation_id=negotiation_id, application=context.application)
                 else:
                     raise ValueError(f"Negotiation {negotiation_id} not found in database.")
             else:
@@ -497,6 +498,7 @@ async def admin_get_resume_recommendation_command(update: Update, context: Conte
             await send_message_to_admin(
                 application=context.application,
                 text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}")
+
 
 
 async def admin_recommend_resumes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -522,35 +524,39 @@ async def admin_recommend_resumes_command(update: Update, context: ContextTypes.
 
         # ----- PARSE COMMAND ARGUMENTS -----
 
-        target_user_id = None
+        negotiation_id = None
         if context.args and len(context.args) == 1:
-            target_user_id = context.args[0]
-            if target_user_id:
-                """if is_user_in_records(record_id=target_user_id):"""
-                if is_value_in_db(db_model=Managers, field_name="id", value=target_user_id):
-                    if is_vacany_data_enough_for_resume_analysis(user_id=target_user_id):
-                        # Import here to avoid circular dependency
-                        logger.debug(f"{log_info_msg}: call manager_bot command")
-                        from manager_bot.manager_bot import recommend_resumes_triggered_by_admin_command
-                        await recommend_resumes_triggered_by_admin_command(bot_user_id=target_user_id, application=context.application)
-                        await send_message_to_user(update, context, text=f"Recommending resumes is triggered for user {target_user_id}.")
-                    else:
-                        raise ValueError(f"User {target_user_id} does not have enough vacancy data for resume analysis.")
+            negotiation_id = context.args[0]
+            if negotiation_id:
+                if is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
+                    # Import here to avoid circular dependency
+                    logger.debug(f"{log_info_msg}: call manager_bot command")
+
+                    vacancy_id = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="vacancy_id")
+                    manager_id = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="manager_id")
+
+                    from manager_bot.manager_bot import send_recommendation_text_to_specified_user, send_recommendation_video_to_specified_user_with_questionnaire
+                    await send_recommendation_text_to_specified_user(whom_to_send=manager_id, negotiation_id=negotiation_id)
+                    await send_recommendation_video_to_specified_user_with_questionnaire(whom_to_send=manager_id, negotiation_id=negotiation_id, application=context.application)
+                
+                    # as sent to manager => update DB status "resume_recommended" to True
+                    update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_recommended", new_value=True)
+                
+                
                 else:
-                    raise ValueError(f"User {target_user_id} not found in records.")
+                    raise ValueError(f"Negotiation {negotiation_id} not found in database.")
             else:
-                raise ValueError(f"Invalid command arguments. Usage: /command_name <user_id>")
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <negotiation_id>")
         else:
-            raise ValueError(f"Invalid number of arguments. Usage: /command_name <user_id>")
-    
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <negotiation_id>")
+
     except Exception as e:
         logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
-            )
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}")
 
 
 

@@ -1,7 +1,7 @@
 from typing import List, Tuple, Optional, Callable, Awaitable
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, Message
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, Application
 from telegram.constants import ParseMode
 
 logger = logging.getLogger(__name__)
@@ -289,7 +289,102 @@ async def handle_answer(update: Update, context: ContextTypes.DEFAULT_TYPE, remo
             pass
 
     # -------- RETURN callback_data --------
-    
     return callback_data
 
-    
+
+# =============================
+# Single-question questionnaire
+# =============================
+
+AnswerKey = str
+QUESTIONNAIRE_CALLBACK_PREFIX = "questionnaire"
+
+
+async def ask_single_question_from_update(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    question_text: str,
+    options: List[Tuple[str, AnswerKey]],
+    callback_prefix: str = QUESTIONNAIRE_CALLBACK_PREFIX,
+) -> None:
+    """
+    Задать ОДИН вопрос пользователю через update/context.
+
+    options: список (button_text, answer_key).
+    В callback_data будет записано "<callback_prefix>:<answer_key>".
+    """
+    answer_options = [
+        (button_text, f"{callback_prefix}:{answer_key}")
+        for button_text, answer_key in options
+    ]
+    await ask_question_with_options(
+        update=update,
+        context=context,
+        question_text=question_text,
+        answer_options=answer_options,
+    )
+
+
+async def ask_single_question_from_application(
+    application: Application,
+    target_user_id: int,
+    question_text: str,
+    options: List[Tuple[str, AnswerKey]],
+    callback_prefix: str = QUESTIONNAIRE_CALLBACK_PREFIX,
+) -> None:
+    """
+    Задать ОДИН вопрос пользователю, имея только application и chat_id.
+
+    Используется, например, в админ-командах.
+    """
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                text=button_text,
+                callback_data=f"{callback_prefix}:{answer_key}",
+            )
+        ]
+        for button_text, answer_key in options
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await application.bot.send_message(
+        chat_id=int(target_user_id),
+        text=question_text,
+        reply_markup=reply_markup,
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True,
+    )
+
+
+async def single_question_callback_handler(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    callback_prefix: str = QUESTIONNAIRE_CALLBACK_PREFIX,
+) -> Optional[AnswerKey]:
+    """
+    Универсальный обработчик ОДНОГО вопроса.
+
+    - Сначала вызывает handle_answer, чтобы убрать спиннер и (опционально) клавиатуру.
+    - Затем парсит callback_data вида "<callback_prefix>:<answer_key>".
+    - Возвращает answer_key или None, если это не наш вопрос.
+
+    В типичном хэндлере вы можете просто сделать:
+
+        answer_key = await single_question_callback_handler(update, context)
+        if answer_key is None:
+            return
+        # дальше своя доменная логика
+    """
+    if not update.callback_query:
+        return None
+
+    raw_data = await handle_answer(update, context, remove_keyboard=True)
+    if not raw_data:
+        return None
+
+    prefix = f"{callback_prefix}:"
+    if not raw_data.startswith(prefix):
+        return None
+
+    answer_key: AnswerKey = raw_data[len(prefix) :]
+    return answer_key
