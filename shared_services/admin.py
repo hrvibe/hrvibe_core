@@ -1,5 +1,5 @@
 # TAGS: [admin]
-# Shared admin commands for manager_bot, applicant_bot, and consultant_bot
+# Shared admin commands for manager_bot, applicant_bot
 
 import asyncio
 import json

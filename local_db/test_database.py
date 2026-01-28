@@ -126,9 +126,9 @@ def test_crud_operations():
         test_resume = Negotiations(
             id="test_resume_1",
             vacancy_id=test_vacancy_id,
-            applicant_first_name="John",
-            applicant_last_name="Doe",
-            applicant_email="john.doe@example.com",
+            hh_first_name="John",
+            hh_last_name="Doe",
+            hh_email="john.doe@example.com",
         )
         db.add(test_resume)
         db.commit()

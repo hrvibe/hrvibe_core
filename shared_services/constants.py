@@ -1,5 +1,5 @@
 # TAGS: [user_messages]
-# Shared constants for manager_bot, applicant_bot, and consultant_bot
+# Shared constants for manager_bot, applicant_bot
 
 # ----- MENU BUTTONS CONSTANTS -----
 BTN_MENU = "Главное меню"
@@ -19,7 +19,7 @@ EMPLOYER_STATE_CONSIDER = "consider"
 BASE_URL = "https://hrvibe-hh-callback-endpoint.onrender.com"
 
 # ----- VIDEO DIRECTORIES CONSTANTS -----
-BOT_FOR_APPLICANTS_USERNAME = "MeetYourManagerBot"
+BOT_FOR_APPLICANTS_USERNAME = "HRVibeApplicant"
 CALLBACK_ENDPOINT_RESPONSE_WHEN_RECORDS_NOT_READY = {'detail': 'State not ready or not found'}
 
 # ----- DATA SERVICE CONSTANTS -----
@@ -49,7 +49,7 @@ INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT_APPLICANT = (
 )
 
 # ----- VIDEO INSTRUCTIONS (MANAGER BOT) -----
-INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT = (
+INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT_MANAGER = (
     "📹 Запишите кружочек или загрузите короткое приветственное видео (не более 60 сек).\n" 
     " • Несколько слов о компании, вакансии\n"
     " • Особые требования (если есть)\n"
@@ -169,3 +169,6 @@ FEEDBACK_ONLY_TEXT_ALLOWED_TEXT = "Пожалуйста, отправьте то
 INVITE_TO_INTERVIEW_CALLBACK_PREFIX = "invite_to_interview"
 INVITE_TO_INTERVIEW_SENT_TEXT_START = "Пошел приглашать кандидата "
 INVITE_TO_INTERVIEW_SENT_TEXT_END = " на интервью, с вами свяжутся в ближайшее время."
+
+
+GOODBYE_TEXT_APPLICANT = "Спасибо за ваше видео. Ваш потенциальный работодатель рассмотрит ваше резюме и видео в приоритетном порядке.\nЯ напишу в этот чат в ближайшее время, если вас пригласят на интервью."

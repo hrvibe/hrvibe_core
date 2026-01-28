@@ -70,17 +70,35 @@ class Negotiations(Base):
     id = Column(String, primary_key=True)
     vacancy_id = Column(String, ForeignKey("vacancies.id"), nullable=False)
     resume_id = Column(String)
-    applicant_first_name = Column(String)
-    applicant_last_name = Column(String)
-    applicant_phone = Column(String)
-    applicant_email = Column(String)
+
+    hh_first_name = Column(String)
+    hh_last_name = Column(String)
+    hh_phone = Column(String)
+    hh_email = Column(String)
+
+    link_to_tg_bot_sent = Column(Boolean, default=False, nullable=False)
+    link_to_tg_bot_sent_time = Column(TIMESTAMP(timezone=True))
+
+    applicant_visited_bot = Column(Boolean, default=False, nullable=False)
+    first_time_seen = Column(TIMESTAMP(timezone=True), default=func.now())
+
+    tg_user_id = Column(String)
+    tg_first_name = Column(String)
+    tg_last_name = Column(String)
+    tg_username = Column(String)
+
+    privacy_policy_confirmed = Column(Boolean, default=False, nullable=False)
+    privacy_policy_confirmation_time = Column(TIMESTAMP(timezone=True))
+    welcome_video_shown = Column(Boolean, default=False, nullable=False)
+    video_sending_confirmed = Column(Boolean, default=False, nullable=False)
+    video_received = Column(Boolean, default=False, nullable=False)
+    video_path = Column(String)
+
     resume_json = Column(JSONB)
     resume_ai_analysis = Column(JSONB)
     resume_ai_score = Column(String)
     resume_sorting_status = Column(String, default="new")
-    link_to_tg_bot_sent = Column(Boolean, default=False, nullable=False)
-    video_received = Column(Boolean, default=False, nullable=False)
-    video_path = Column(String)
+    
     resume_recommended = Column(Boolean, default=False, nullable=False)
     resume_recommended_time = Column(TIMESTAMP(timezone=True))
     resume_accepted = Column(Boolean, default=False, nullable=False)

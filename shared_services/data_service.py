@@ -129,7 +129,7 @@ def create_tg_bot_link_for_applicant(negotiation_id: str) -> str:
     """Create Telegram bot link for applicant to start the bot. TAGS: [create_data]
     When the user taps it, Telegram sends your bot /start <payload>
     The payload is read from message.from.id (Telegram user_id) and the <payload> in the same update and persist the mapping.
-    Example: https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={bot_user_id}_{vacancy_id}_{resume_id}"""
+    Example: https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={negotiation_id}"""
     payload = f"{negotiation_id}"
     return f"https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={payload}"
 
@@ -410,8 +410,8 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
         raise ValueError(f"{log_info_msg}: vacancy_id not found for negotiation {negotiation_id}")
     
     vacancy_name = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="name")
-    first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="applicant_first_name")
-    last_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="applicant_last_name")
+    first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_applicant_first_name")
+    last_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_last_name")
     final_score = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_score")
     
     # Get resume_ai_analysis and check if it exists

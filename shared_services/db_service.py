@@ -1,6 +1,6 @@
 # services/data_service.py
 # TAGS: [status_validation], [get_data], [create_data], [update_data], [directory_path], [file_path], [persistent_keyboard], [format_data]
-# Shared data service for manager_bot, consultant_bot, and applicant_bot
+# Shared data service for manager_bot and applicant_bot
 
 import os
 import sys
@@ -42,11 +42,7 @@ logger = logging.getLogger(__name__)
 
 # ****** [create_data] ******
 
-def create_new_record_in_db(
-    db_model: Type[Base],
-    record_id: str,
-    initial_values: Optional[dict] = None,
-) -> None:
+def create_new_record_in_db(db_model: Type[Base], record_id: str, initial_values: Optional[dict] = None) -> None:
     """Create a new record with the given ID.
 
     Args:
@@ -218,13 +214,7 @@ def get_column_value_by_field(db_model: Type[Base], search_field_name: str, sear
     return value
 
 
-def update_column_value_by_field(
-    db_model: Type[Base], 
-    search_field_name: str, 
-    search_value: Any, 
-    target_field_name: str, 
-    new_value: Any
-) -> bool:
+def update_column_value_by_field(db_model: Type[Base], search_field_name: str, search_value: Any, target_field_name: str, new_value: Any) -> bool:
     """Update a column value in a record found by a field other than id.
     
     Args:

@@ -17,7 +17,7 @@ def get_env_var(var_name: str, default: str = None) -> str:
 # ——— TELEGRAM ———
 TELEGRAM_MANAGER_BOT_TOKEN = get_env_var("TELEGRAM_MANAGER_BOT_TOKEN")
 TELEGRAM_APPLICANT_BOT_TOKEN = get_env_var("TELEGRAM_APPLICANT_BOT_TOKEN")
-BOT_FOR_APPLICANTS_USERNAME = get_env_var("BOT_FOR_APPLICANTS_USERNAME", "YourApplicantBot")
+BOT_FOR_APPLICANTS_USERNAME = get_env_var("BOT_FOR_APPLICANTS_USERNAME", "HRVibeApplicant")
 
 # ——— DATABASE ———
 DATABASE_URL = get_env_var("DATABASE_URL")

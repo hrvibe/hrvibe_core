@@ -1,5 +1,5 @@
 """
-Orchestrator for running a single bot: manager_bot, applicant_bot, or consultant_bot.
+Orchestrator for running a single bot: manager_bot, applicant_bot.
 Which bot runs depends on ACTIVE_BOT environment variable.
 """
 
@@ -109,10 +109,10 @@ def main():
     active_bot = active_bot_raw.rstrip('%').strip().lower()
     
     if not active_bot:
-        logger.error("ACTIVE_BOT environment variable is not set. Please set it to 'manager_bot', 'applicant_bot', or 'consultant_bot' in .env file")
+        logger.error("ACTIVE_BOT environment variable is not set. Please set it to 'manager_bot', 'applicant_bot' in .env file")
         sys.exit(1)
     
-    valid_bots = ["manager_bot", "applicant_bot", "consultant_bot"]
+    valid_bots = ["manager_bot", "applicant_bot"]
     if active_bot not in valid_bots:
         logger.error("ACTIVE_BOT must be one of: %s, got: %s (raw value: '%s')", ", ".join(valid_bots), active_bot, active_bot_raw)
         sys.exit(1)

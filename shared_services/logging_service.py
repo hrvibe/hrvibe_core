@@ -28,12 +28,22 @@ def setup_logging(max_bytes: int = 20 * 1024 * 1024, backup_count: int = 20):
     else:
         # If relative path, resolve it relative to project root
         data_dir = project_root / users_data_dir_env.lstrip("./")
-    
-    logs_dir = data_dir / "logs" / "manager_bot_logs"
+
+    # Log directory and filename depend on ACTIVE_BOT from .env
+    active_bot_raw = os.getenv("ACTIVE_BOT", "manager_bot")
+    active_bot = active_bot_raw.rstrip("%").strip().lower()
+    if active_bot == "applicant_bot":
+        logs_subdir = "applicant_bot_logs"
+        log_basename_prefix = "applicant_bot"
+    else:
+        logs_subdir = "manager_bot_logs"
+        log_basename_prefix = "manager_bot"
+
+    logs_dir = data_dir / "logs" / logs_subdir
     # Create logs directory and all parent directories if they don't exist
     logs_dir.mkdir(parents=True, exist_ok=True)
     # Each application start will create a new log file path with timestamp (to avoid overwriting the same file)
-    log_filename = logs_dir / f"manager_bot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+    log_filename = logs_dir / f"{log_basename_prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     
     # ------------- CONFIGURATION OF LOGGING -------------
 

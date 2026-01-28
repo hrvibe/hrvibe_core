@@ -26,12 +26,7 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
-"""
-from services.video_service import (
-    process_incoming_video,
-    download_incoming_video_locally
-)
-"""
+
 from shared_services.video_service import (
     process_incoming_video,
     download_incoming_video_locally
@@ -39,8 +34,7 @@ from shared_services.video_service import (
 
 from services.status_validation_service import (
     is_applicant_in_applicant_bot_records,
-    is_applicant_privacy_policy_confirmed,
-    is_welcome_video_shown_to_applicant,
+    is_privacy_policy_confirmed,
     is_resume_video_received,
     is_vacancy_exist,
 )
@@ -58,22 +52,66 @@ from shared_services.data_service import (
     get_decision_status_from_selected_callback_code,
     get_tg_user_data_attribute_from_update_object
 )
-"""
-from services.questionnaire_service import (
-    ask_question_with_options, 
-    handle_answer,
-    send_message_to_user,
-    clear_all_unprocessed_keyboards
-)
-"""
+
 from shared_services.questionnaire_service import (
-    ask_question_with_options, 
+    ask_question_with_options,
     handle_answer,
     send_message_to_user,
-    clear_all_unprocessed_keyboards
+    clear_all_unprocessed_keyboards,
+    ask_single_question_from_update,
+    single_question_callback_handler,
+    ask_single_question_from_application,
+)
+
+from database import (
+    Managers,
+    Vacancies,
+    Negotiations,
+)
+
+from shared_services.db_service import (
+    is_boolean_field_true_in_db,
+    update_record_in_db,
+    create_new_record_in_db,
+    is_value_in_db,
+    get_column_value_in_db,
+    get_column_value_by_field,
+    update_column_value_by_field
 )
 
 from shared_services.constants import *
+
+##########################################
+# ------------ ADMIN COMMANDS ------------``
+##########################################
+
+
+async def send_message_to_admin(application: Application, text: str, parse_mode: Optional[ParseMode] = None) -> None:
+    #TAGS: [admin]
+
+    log_prefix = "send_message_to_admin"
+
+    # ----- GET ADMIN ID from environment variables -----
+    
+    admin_id = os.getenv("ADMIN_ID", "")
+    if not admin_id:
+        logger.error(f"{log_prefix}: ADMIN_ID environment variable is not set. Cannot send admin notification.")
+        return
+    
+    # ----- SEND NOTIFICATION to admin -----
+    
+    try:
+        if application and application.bot:
+            await application.bot.send_message(
+                chat_id=int(admin_id),
+                text=text,
+                parse_mode=parse_mode
+            )
+            logger.debug(f"{log_prefix}: Admin notification sent successfully to admin_id: {admin_id}")
+        else:
+            logger.warning(f"{log_prefix}: Cannot send admin notification: application or bot instance not available")
+    except Exception as e:
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
 
 
 ########################################################
@@ -91,44 +129,96 @@ from shared_services.constants import *
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Start command handler. 
-    Called from: 'start' button in main menu.
-    Triggers: 1) setup new user 2) ask privacy policy confirmation
-    """
+    """Start command handler. """
     # ----- SETUP NEW USER and send welcome message -----
 
+    log_prefix = "start_command"
+    logger.info(f"{log_prefix}: start")
+
     # if existing user, setup_new_user_command will be skipped
-    await setup_new_applicant_command(update=update, context=context)
+    await setup_new_applicant_user_command(update=update, context=context)
+
+    # ----- ASK PRIVACY POLICY CONFIRMATION -----
+    
+    # if already confirmed, second confirmation will be skipped
+    await process_payload(update=update, context=context)
 
 
-async def setup_new_applicant_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def setup_new_applicant_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
-    """Setup new applicant user in system.
-    Called from: 'start_command'.
-    Triggers: nothing.
-    Sends notification to admin if fails"""
+
+    log_prefix = "setup_new_user_command"
+    logger.info(f"{log_prefix}: start")
 
     try:
         # ------ COLLECT NEW USER ID and CREATE record and user directory if needed ------
 
-        applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"setup_new_applicant_command started. applicant_user_id: {applicant_user_id}")
+        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
-        if not is_applicant_in_applicant_bot_records(applicant_record_id=applicant_user_id):
-            create_new_applicant_in_applicant_bot_records(applicant_record_id=applicant_user_id)
-        else:
-            logger.debug(f"Applicant {applicant_user_id} already in applicant bot records")
+        negotiation_id = extract_negotiation_id_from_payload(update=update, context=context)
+
+        if negotiation_id is None:
+            logger.debug(f"{log_prefix}: No negotiation_id found in payload")
+            return
+
+        # ----- CHECK IF NEGOTIATION exists in records and CREATE record and user directory if needed -----
+
+        if not is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
+            logger.debug(f"{log_prefix}: Negotiation {negotiation_id} not found in database")
+            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
+            return
 
         # ------ ENRICH APPLICANT RECORDS with NEW USER DATA from Telegram user attributes ------
 
-        tg_user_attributes = ["username", "first_name", "last_name"]
-        for item in tg_user_attributes:
-            tg_user_attribute_value = get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute=item)
-            update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key=item, value=tg_user_attribute_value)
-        logger.debug(f"{applicant_user_id} in user records is updated with telegram user attributes.")
+        username = get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="username")
+        first_name = get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="first_name")
+        last_name = get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="last_name")
+        user_details =f"Negotiation ID: {negotiation_id}\nApplicant User ID: {bot_user_id}\nUsername: {username}\nFirst Name: {first_name}\nLast Name: {last_name}\n"
+
+        # ----- UPDATE APPLICANT BOT RECORDS with PAYLOAD DATA -----
+
+        update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"applicant_visited_bot": True})
+        current_time = datetime.now(timezone.utc).isoformat()
+        update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"first_time_seen": current_time})
+        update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"tg_user_id": bot_user_id})
+        update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"tg_username": username})
+        update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"tg_first_name": first_name})
+        update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"tg_last_name": last_name})
+
+        logger.debug(f"{log_prefix}: Negotiation {negotiation_id} updated with applicant user data.")
+
+        # ----- ASK PRIVACY POLICY CONFIRMATION -----
+
+        # if already confirmed, second confirmation will be skipped
+        await ask_privacy_policy_confirmation_command(update=update, context=context)
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"🤓 New applicant user has been setup.\n{user_details}"
+            )
+        
+    except Exception as e:
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
+        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+            )
+
+
+async def extract_negotiation_id_from_payload(update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
+        
+        log_prefix = "extract_negotiation_id_from_payload"
+        logger.info(f"{log_prefix}: start")
 
         # ----- EXTRACT PAYLOAD from Telegram start command -----
-        # Link structure: https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={manager_user_id}_{vacancy_id}_{resume_id}"
+        # Link structure: Example: https://t.me/{BOT_FOR_APPLICANTS_USERNAME}?start={negotiation_id}
         
         payload = None
         if update.message and update.message.text:
@@ -138,188 +228,189 @@ async def setup_new_applicant_command(update: Update, context: ContextTypes.DEFA
             logger.debug(f"text_parts: {text_parts}")
             if len(text_parts) > 1:
                 payload = text_parts[1]  # Get the payload, which is a second part after "/start"
-        
-        # ----- PARSE PAYLOAD and EXTRACT resume_id and vacancy_id -----
-        
+
+        # ----- PARSE PAYLOAD and EXTRACT negotiation_id -----
+
         if payload:
-            # Parse payload format: "resume_id:vacancy_id"
-            payload_parts = payload.split("_")
-            logger.debug(f"payload_parts: {payload_parts}")
-            if len(payload_parts) == 3:
-                manager_user_id = payload_parts[0]
-                vacancy_id = payload_parts[1]
-                resume_id = payload_parts[2]
-                logger.debug(f"Parsed payload - resume_id: {resume_id}, vacancy_id: {vacancy_id}")
+            # Parse payload format: "negotiation_id"
+            negotiation_id = payload
+            logger.debug(f"{log_prefix}: Parsed payload - negotiation_id: {negotiation_id}")
 
-                # ----- CHECK IF SUCH VACANCY exists in vacancy_records and STOP if not -----
-
-                if not is_vacancy_exist(user_record_id=manager_user_id, vacancy_id=vacancy_id):
-                    logger.debug(f"Vacancy {vacancy_id} not found for manager {manager_user_id}")
-                    await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
-                    return
-
-                # ----- UPDATE APPLICANT BOT RECORDS with PAYLOAD DATA -----
-
-                update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="manager_user_id", value=manager_user_id)
-                update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="vacancy_id", value=vacancy_id)
-                update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="resume_id", value=resume_id)
-
-                logger.debug(f"Applicant bot records updated for applicant_user_id: {applicant_user_id} with payload - manager_user_id: {manager_user_id}, vacancy_id: {vacancy_id}, resume_id: {resume_id}.")
-
-                # ----- ASK PRIVACY POLICY CONFIRMATION -----
-
-                # if already confirmed, second confirmation will be skipped
-                await ask_privacy_policy_confirmation_command(update=update, context=context)
-
-                # IMPORTANT: ALL OTHER COMMANDS will be triggered from functions if PRIVACY POLICY is confirmed
-
-            else:
-                logger.warning(f"Invalid payload format: {payload}")
-                await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
+            return negotiation_id
         else:
-            logger.debug("No payload found in start command")
-            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
+
+            logger.debug(f"{log_prefix}: No payload found in start command")
+            return None
+
+
+async def ask_privacy_policy_confirmation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # TAGS: [user_related]
+
+    log_prefix = "ask_privacy_policy_confirmation_command"
+    logger.info(f"{log_prefix}: start")
+
+    try:
+        # ----- IDENTIFY USER and pull required data from records -----
+
+        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
+
+        negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=bot_user_id, target_field_name="id")
+
+        # ----- CHECK IF PRIVACY POLICY is already confirmed and STOP if it is -----
+
+        if is_boolean_field_true_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="privacy_policy_confirmed"):
+            await send_message_to_user(update, context, text=SUCCESS_TO_GET_PRIVACY_POLICY_CONFIRMATION_TEXT)
+            logger.info(f"{log_prefix}: privacy policy already confirmed for user_id {bot_user_id}")
+            return
+
+        # Build options (button_text, answer_key)
+        local_answer_options = [
+            ("Ознакомлен, даю согласие на обработку.", "yes"),
+            ("Не даю согласие на обрабоку.", "no"),
+        ]
+
+        # Store mapping in context for later use in handler (for echoing selected text)
+        context.user_data["privacy_policy_confirmation_answer_options"] = local_answer_options
+
+        # Ask single question using new questionnaire service
+        await ask_single_question_from_update(
+            update=update,
+            context=context,
+            question_text=PRIVACY_POLICY_CONFIRMATION_TEXT,
+            options=local_answer_options,
+            callback_prefix="privacy_policy_confirmation",
+        )
+        logger.info(f"{log_prefix}: privacy policy confirmation question with options asked")
+
     except Exception as e:
-        logger.error(f"Failed to setup new applicant: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error setting up new applicant: {e}\nUser ID: {applicant_user_id if 'applicant_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
-
-
-async def ask_privacy_policy_confirmation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # TAGS: [user_related]
-    """Ask privacy policy confirmation command handler. 
-    Called from: 'setup_new_applicant_command'.
-    Triggers: nothing."""
-
-    # ----- IDENTIFY USER and pull required data from records -----
-
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"ask_privacy_policy_confirmation_command started. applicant_user_id: {applicant_user_id}")
-    manager_user_id = get_manager_user_id_from_applicant_bot_records(applicant_record_id=applicant_user_id)
-    vacancy_id = get_vacancy_id_from_applicant_bot_records(applicant_record_id=applicant_user_id)
-
-    # ----- CHECK IF SUCH VACANCY exists and STOP if not -----
-
-    if not is_vacancy_exist(user_record_id=manager_user_id, vacancy_id=vacancy_id):
-        logger.debug(f"Vacancy {vacancy_id} not found for manager {manager_user_id}")
-        await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
-        return
-
-    # ----- CHECK IF PRIVACY POLICY is already confirmed and STOP if it is -----
-
-    if is_applicant_privacy_policy_confirmed(applicant_record_id=applicant_user_id):
-        await send_message_to_user(update, context, text=SUCCESS_TO_GET_PRIVACY_POLICY_CONFIRMATION_TEXT)
-        return
-
-    # Build options (which will be tuples of (button_text, callback_data))
-    answer_options = [
-        ("Ознакомлен, даю согласие на обработку.", "privacy_policy_confirmation:yes"),
-        ("Не даю согласие на обрабоку.", "privacy_policy_confirmation:no"),
-    ]
-    # Store button_text and callback_data options in context to use it later for button _text identification as this is not stored in "update.callback_query" object
-    context.user_data["privacy_policy_confirmation_answer_options"] = answer_options
-    await ask_question_with_options(update, context, question_text=PRIVACY_POLICY_CONFIRMATION_TEXT_APPLICANT, answer_options=answer_options)
 
 
 async def handle_answer_policy_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
-    """Handle button click, updates confirmation status in user records.
-    Called from: nowhere.
-    Triggers commands:
-    - If user agrees to process personal data, triggers 'show_welcome_video_command'.
-    - If user does not agree to process personal data, informs user how to give consent."""
+
+    log_prefix = "handle_answer_policy_confirmation"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"handle_answer_policy_confirmation started. applicant_user_id: {applicant_user_id}")
-    
-    # ------- UNDERSTAND WHAT BUTTON was clicked and get "callback_data" from it -------
+    bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
-    # Get the "callback_data" extracted from "update.callback_query" object created once button clicked
-    selected_callback_code = await handle_answer(update, context)
+    negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=bot_user_id, target_field_name="id")
 
-    # ----- UNDERSTAND TEXT on clicked buttton from option taken from context -----
+    # ------- UNDERSTAND WHAT BUTTON was clicked and get answer_key -------
 
-    # Get options from context or return empty list [] if not found
-    privacy_policy_confirmation_answer_options = context.user_data.get("privacy_policy_confirmation_answer_options", [])
-    # find selected button text from callback_data
-    for button_text, callback_code in privacy_policy_confirmation_answer_options:
-        if selected_callback_code == callback_code:
+    answer_key = await single_question_callback_handler(
+        update=update,
+        context=context,
+        callback_prefix="privacy_policy_confirmation",
+    )
+    if answer_key is None:
+        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+        logger.error(f"{log_prefix}: no answer_key found")
+        return
+
+    # ----- UNDERSTAND TEXT on clicked buttton from options stored in context -----
+
+    privacy_policy_confirmation_answer_options = context.user_data.get(
+        "privacy_policy_confirmation_answer_options",
+        [],
+    )
+
+    selected_button_text = None
+    for button_text, key in privacy_policy_confirmation_answer_options:
+        if key == answer_key:
             selected_button_text = button_text
-            # Clear privacy policy confirmation answer options from "context" object, because now use "selected_button_text" variable instead
-            context.user_data.pop("privacy_policy_confirmation_answer_options", None)
+            logger.info(f"{log_prefix}: selected button text fetched {selected_button_text}")
             break
+
+    # Clear stored options as they are no longer needed
+    context.user_data.pop("privacy_policy_confirmation_answer_options", None)
 
     # ----- INFORM USER about selected option -----
 
-    # If "options" is NOT an empty list execute the following code
-    if privacy_policy_confirmation_answer_options:
+    if selected_button_text is not None:
         await send_message_to_user(update, context, text=f"Вы выбрали: '{selected_button_text}'")
     else:
         # No options available, inform user and return
-        if update.callback_query and update.callback_query.message:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+        logger.error(f"{log_prefix}: no selected button text found")
         return
 
-    # ----- UPDATE USER RECORDS with selected vacancy data -----
+    # ----- UPDATE USER RECORDS with selected decision -----
 
-    # Now you can use callback_data or selected_option for your logic
     if update.callback_query and update.callback_query.message:
-        if selected_callback_code is None:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-            return
-        privacy_policy_confirmation_user_decision = get_decision_status_from_selected_callback_code(selected_callback_code=selected_callback_code)
-        # Update user records with selected vacancy data
-        update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="privacy_policy_confirmed", value=privacy_policy_confirmation_user_decision)
-        current_time = datetime.now(timezone.utc).isoformat()
-        update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="privacy_policy_confirmation_time", value=current_time)
-        logger.debug(f"Applicant privacy policy confirmation user decision: {privacy_policy_confirmation_user_decision} at {current_time}")
+        privacy_policy_confirmation_user_decision = answer_key  # "yes" or "no"
 
-        # ----- IF USER CHOSE "YES" download video to local storage -----
+        privacy_policy_confirmation_user_value = True if privacy_policy_confirmation_user_decision == "yes" else False
+        update_record_in_db(
+            db_model=Negotiations,
+            record_id=negotiation_id,
+            updates={"privacy_policy_confirmed": privacy_policy_confirmation_user_value},
+        )
+
+        current_time = datetime.now(timezone.utc).isoformat()
+        update_record_in_db(
+            db_model=Negotiations,
+            record_id=negotiation_id,
+            updates={"privacy_policy_confirmation_time": current_time},
+        )
+
+        logger.debug(f"{log_prefix}: Privacy policy confirmation user {bot_user_id} decision: {privacy_policy_confirmation_user_decision} at {current_time}")
+
+        # ----- IF USER CHOSE "YES" -----
 
         if privacy_policy_confirmation_user_decision == "yes":
             await send_message_to_user(update, context, text=SUCCESS_TO_GET_PRIVACY_POLICY_CONFIRMATION_TEXT)
-            
-        # ----- SEND AUTHENTICATION REQUEST and wait for user to authorize -----
-    
-            # if already authorized, second authorization will be skipped
+
+            # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+            if context.application:
+                await send_message_to_admin(
+                    application=context.application,
+                    text=f"🤓 New applicant user {bot_user_id} has given privacy policy confirmation.",
+                )
+
+            # ----- SEND AUTHENTICATION REQUEST and wait for user to authorize -----
             await show_welcome_video_command(update=update, context=context)
-        
-        # ----- IF USER CHOSE "NO" inform user about need to give consent to process personal data -----
-        
+
+        # ----- IF USER CHOSE "NO" -----
         else:
             await send_message_to_user(update, context, text=MISSING_PRIVACY_POLICY_CONFIRMATION_TEXT)
 
 
-async def show_welcome_video_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def show_welcome_video_command(update: Update, context: ContextTypes.DEFAULT_TYPE,) -> None:
     # TAGS: [user_related]
-    """Show welcome video command. 
-    Called from: 'handle_answer_policy_confirmation'.
-    Triggers: 'ask_to_record_video_command'."""
+    """Show welcome video command."""
+
+    log_prefix = "show_welcome_video_command"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"show_welcome_video_command started. applicant_user_id: {applicant_user_id}")
-    manager_user_id = get_manager_user_id_from_applicant_bot_records(applicant_record_id=applicant_user_id)
-    vacancy_id = get_vacancy_id_from_applicant_bot_records(applicant_record_id=applicant_user_id)
+    bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
+    negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=bot_user_id, target_field_name="id")
+    vacancy_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="vacancy_id")
 
     # ----- CHECK IF SUCH VACANCY exists and STOP if not -----
 
-    if not is_vacancy_exist(user_record_id=manager_user_id, vacancy_id=vacancy_id):
-        logger.debug(f"Vacancy {vacancy_id} not found for manager {manager_user_id}")
+    if not is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
+        logger.debug(f"{log_prefix}: Vacancy {vacancy_id} not found in database")
         await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
         return
 
     # ----- CHECK IF WELCOME VIDEO is already shown and STOP if it is -----
 
-    if is_welcome_video_shown_to_applicant(applicant_record_id=applicant_user_id):
+    if is_boolean_field_true_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="welcome_video_shown"):
         await send_message_to_user(update, context, text=SUCCESS_TO_GET_WELCOME_VIDEO_TEXT)
         return
 
@@ -327,21 +418,15 @@ async def show_welcome_video_command(update: Update, context: ContextTypes.DEFAU
 
     # ----- GET WELCOME VIDEO from managers -----
 
-    managers_video_data_dir = get_directory_for_video_from_managers(user_record_id=manager_user_id, vacancy_id=vacancy_id)
-    if managers_video_data_dir is None:
+    video_path = get_column_value_by_field(db_model=Vacancies, search_field_name="id", search_value=vacancy_id, target_field_name="video_path")
+    if video_path is None:
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
-    welcome_video_file_paths = list(managers_video_data_dir.glob("*.mp4"))
-    if not welcome_video_file_paths:
-        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-        return
-    welcome_video_file_path = welcome_video_file_paths[0]
-
 
     # ----- SEND WELCOME VIDEO to applicant -----
     
-    await context.application.bot.send_video(chat_id=int(applicant_user_id), video=str(welcome_video_file_path))
-    update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="welcome_video_shown", value="yes")
+    await context.application.bot.send_video(chat_id=int(bot_user_id), video=str(video_path))
+    update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"welcome_video_shown": True})
     await asyncio.sleep(1)
     
     await ask_to_record_video_command(update=update, context=context)
@@ -349,169 +434,60 @@ async def show_welcome_video_command(update: Update, context: ContextTypes.DEFAU
 
 async def ask_to_record_video_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
-    """Ask to record video command. 
-    Called from: 'show_welcome_video_command'.
-    Triggers: nothing."""
+    """Ask to record video command.""" 
+
+    log_prefix = "ask_to_record_video_command"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"ask_to_record_video_command started. applicant_user_id: {applicant_user_id}")
-    manager_user_id = get_manager_user_id_from_applicant_bot_records(applicant_record_id=applicant_user_id)
-    vacancy_id = get_vacancy_id_from_applicant_bot_records(applicant_record_id=applicant_user_id)
+    bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
+    negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=bot_user_id, target_field_name="id")
 
-
-    # ----- CHECK IF SUCH VACANCY exists and STOP if not -----
-
-    if not is_vacancy_exist(user_record_id=manager_user_id, vacancy_id=vacancy_id):
-        logger.debug(f"Vacancy {vacancy_id} not found for manager {manager_user_id}")
-        await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_PAYLOAD_TEXT)
-        return
-
-
-    if is_resume_video_received(applicant_record_id=applicant_user_id):
-        await send_message_to_user(update, context, text=INFO_VIDEO_ALREADY_SAVED_TEXT)
+    if is_boolean_field_true_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="video_received"):
+        logger.debug(f"{log_prefix}: user {bot_user_id} already has welcome video recorded.")
+        await send_message_to_user(update, context, text=SUCCESS_TO_RECORD_VIDEO_TEXT)
         return
 
     # ----- CHECK MUST CONDITIONS are met and STOP if not -----
 
-    if not is_applicant_privacy_policy_confirmed(applicant_record_id=applicant_user_id):
+    if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="privacy_policy_confirmed"):
+        logger.debug(f"{log_prefix}: user {bot_user_id} doesn't have privacy policy confirmed.")
         await send_message_to_user(update, context, text=MISSING_PRIVACY_POLICY_CONFIRMATION_TEXT)
         return
 
 
-    # ----- ASK USER IF WANTS TO RECORD or drop welcome video for the selected vacancy -----
-
-    # Build options (which will be tuples of (button_text, callback_data))
-    answer_options = [
-        ("Хочу записать или загрузить видео", "record_video_request:yes"), 
-        ("Продолжить без видео", "record_video_request:no")
-        ]
-    # Store button_text and callback_data options in context to use it later for button _text identification as this is not stored in "update.callback_query" object
-    context.user_data["video_record_request_options"] = answer_options
-    await ask_question_with_options(update, context, question_text=WELCOME_VIDEO_RECORD_REQUEST_TEXT_APPLICANT, answer_options=answer_options)
-    logger.debug(f"Record applicant's video request question with options asked")
-
-
-async def handle_answer_video_record_request(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # TAGS: [user_related]
-    """Handle button click. 
-    Called from: nowhere.
-    Triggers commands:
-    - If user agrees to record, sends instructions to shoot video command'.
-    - If user does not agree to record, triggers 'read_vacancy_description_command'.
-
-    This is called AUTOMATICALLY by Telegram when a button is clicked (via CallbackQueryHandler).
-
-    Note: Bot knows which user clicked because:
-    - update.effective_user.id contains the user ID (works for both messages and callbacks)
-    - context.user_data is automatically isolated per user by python-telegram-bot framework
-    """
-
-    # ----- IDENTIFY USER and pull required data from records -----
-
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"handle_answer_video_record_request started. applicant_user_id: {applicant_user_id}")
-    
-    # ------- UNDERSTAND WHAT BUTTON was clicked and get "callback_data" from it -------
-
-    # Get the "callback_data" extracted from "update.callback_query" object created once button clicked
-    selected_callback_code = await handle_answer(update, context)
-    
-    logger.debug(f"Callback code found: {selected_callback_code}")
-
-    # ----- UNDERSTAND TEXT on clicked buttton from option taken from context -----
-
-    if not selected_callback_code:
-        if update.callback_query and update.callback_query.message:
-            logger.debug(f"No callback code found in update.callback_query.message")
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-        return
-
-    logger.debug(f"Callback code found: {selected_callback_code}")
-
-    # Get options from context or use fallback defaults if not found
-    video_record_request_options = context.user_data.get("video_record_request_options", [])
-    logger.debug(f"Video record request options: {video_record_request_options}")
-    if not video_record_request_options:
-        video_record_request_options = [
-            ("Хочу записать или загрузить видео", "record_video_request:yes"),
-            ("Продолжить без видео", "record_video_request:no"),
-        ]
-    logger.debug(f"Video record request options set: {video_record_request_options}")
-    selected_button_text = None
-    # find selected button text from callback_data
-    for button_text, callback_code in video_record_request_options:
-        if selected_callback_code == callback_code:
-            selected_button_text = button_text
-            # Clear video record request options from "context" object, because now use "selected_button_text" variable instead
-            context.user_data.pop("video_record_request_options", None)
-            break
-    logger.debug(f"Selected button text: {selected_button_text}")
-    logger.debug(f"Context user data: {context.user_data}")
-
-    # ----- INFORM USER about selected option -----
-
-    if selected_button_text:
-        await send_message_to_user(update, context, text=f"Вы выбрали: '{selected_button_text}'")
-    else:
-        # No option identified, inform user and return
-        if update.callback_query and update.callback_query.message:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-        return
-
-    # ----- UPDATE USER RECORDS with selected vacancy data and infrom user -----
-
-    # Now you can use callback_data or selected_option for your logic
-    if update.callback_query and update.callback_query.message:
-        logger.debug(f"Selected callback code: {selected_callback_code}")
-        if selected_callback_code is None:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-            return
-        video_record_request_user_decision = get_decision_status_from_selected_callback_code(selected_callback_code=selected_callback_code)
-        logger.debug(f"Video record request user decision: {video_record_request_user_decision}")
-        # Update user records with selected vacancy data
-        update_applicant_bot_records_with_top_level_key(applicant_record_id=applicant_user_id, key="agreed_to_record_resume_video", value=video_record_request_user_decision)
-        logger.debug(f"User records updated")
-    
-    # ----- PROGRESS THROUGH THE VIDEO FLOW BASED ON THE USER'S RESPONSE -----
-
-    # ----- IF USER CHOSE "YES" send instructions to shoot video -----
-
-    if video_record_request_user_decision == "yes":
-        logger.debug(f"Video record request user decision is yes")
-        await send_message_to_user(update, context, text=INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT_APPLICANT)
-        
-        # ----- NOW HANDLER LISTENING FOR VIDEO from user -----
-
-        # this line just for info that handler will work from "create_applicant_application" method in file "applicant_bot.py"
-        # once handler will be triggered, it will trigget "handle_video" method from file "services.video_service.py"
-
-    # ----- IF USER CHOSE "NO" inform user about need to continue without video -----
-
-    else:
-        await send_message_to_user(update, context, text=CONTINUE_WITHIOUT_APPLICANT_VIDEO_TEXT)
+    await send_message_to_user(update, context, text=INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT_APPLICANT)
+    await asyncio.sleep(1)
+    await send_message_to_user(update, context, text=INFO_DROP_VIDEO_HERE_TEXT)
+    logger.debug(f"{log_prefix}: instructions to shoot video sent")
 
 
 async def ask_confirm_sending_video_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
-    """Ask confirm sending video command handler. 
-    Called from: 'process_incoming_video' from file "services.video_service.py".
-    Triggers: nothing. """
+    """Ask confirm sending video command handler. """
+
+    log_prefix = "ask_confirm_sending_video_command"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"ask_confirm_sending_video_command started. applicant_user_id: {applicant_user_id}")
+    bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
-    # Build options (which will be tuples of (button_text, callback_data))
-    answer_options = [
-        ("Да. Отправить это.", "sending_video_confirmation:yes"),
-        ("Нет. Попробую еще раз.", "sending_video_confirmation:no"),
+    # Use generic single-question helper from questionnaire_service
+    options = [
+        ("Да. Отправить это.", "yes"),
+        ("Нет. Попробую еще раз.", "no"),
     ]
-    # Store button_text and callback_data options in context to use it later for button _text identification as this is not stored in "update.callback_query" object
-    context.user_data["sending_video_confirmation_answer_options"] = answer_options
-    await ask_question_with_options(update, context, question_text=VIDEO_SENDING_CONFIRMATION_TEXT, answer_options=answer_options)
+    await ask_single_question_from_update(
+        update=update,
+        context=context,
+        question_text=VIDEO_SENDING_CONFIRMATION_TEXT,
+        options=options,
+        callback_prefix="sending_video_confirmation",
+    )
 
 
 async def handle_answer_confrim_sending_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -523,50 +499,41 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
     - If user does not agree to send video, inform that waiting for another video to be sent by user.
     """
     
+    log_prefix = "handle_answer_confrim_sending_video"
+    logger.info(f"{log_prefix}: start")
+
     # ----- IDENTIFY USER and pull required data from records -----
 
-    applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    
-    # ------- UNDERSTAND WHAT BUTTON was clicked and get "callback_data" from it -------
+    bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
+    negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=bot_user_id, target_field_name="id")
 
-    # Get the "callback_data" extracted from "update.callback_query" object created once button clicked
-    selected_callback_code = await handle_answer(update, context)
+    # ------- UNDERSTAND WHAT BUTTON was clicked using generic questionnaire helper -------
 
-    # ----- UNDERSTAND TEXT on clicked buttton from option taken from context -----
-
-    # Get options from context or return empty list [] if not found
-    sending_video_confirmation_answer_options = context.user_data.get("sending_video_confirmation_answer_options", [])
-    # find selected button text from callback_data
-    for button_text, callback_code in sending_video_confirmation_answer_options:
-        if selected_callback_code == callback_code:
-            selected_button_text = button_text
-            # Clear sending video confirmation answer options from "context" object, because now use "selected_button_text" variable instead
-            context.user_data.pop("sending_video_confirmation_answer_options", None)
-            break
-
-    # ----- INFORM USER about selected option -----
-
-    # If "options" is NOT an empty list execute the following code
-    if sending_video_confirmation_answer_options:
-        await send_message_to_user(update, context, text=f"Вы выбрали: '{selected_button_text}'")
-    else:
-        # No options available, inform user and return
-        if update.callback_query and update.callback_query.message:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+    answer_key = await single_question_callback_handler(
+        update=update,
+        context=context,
+        callback_prefix="sending_video_confirmation",
+    )
+    if answer_key is None:
+        logger.debug(f"{log_prefix}: no matching answer_key returned")
         return
 
-    # ----- UPDATE USER RECORDS with selected vacancy data -----
+    # --- UPDATE USER RECORDS with selected option ---
 
-    # Now you can use callback_data or selected_option for your logic
-    if update.callback_query and update.callback_query.message:
-        if selected_callback_code is None:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-            return
-        sending_video_confirmation_user_decision = get_decision_status_from_selected_callback_code(selected_callback_code=selected_callback_code)
-        
+    sending_video_confirmation_user_decision = answer_key
+
     # ----- IF USER CHOSE "YES" start video download  -----
 
     if sending_video_confirmation_user_decision == "yes":
+
+        update_column_value_by_field(
+            db_model=Negotiations,
+            search_field_name="id",
+            search_value=negotiation_id,
+            target_field_name="video_sending_confirmed",
+            new_value=True,
+        )
         
         # ----- GET VIDEO DETAILS from message -----
 
@@ -580,7 +547,8 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
             update=update,
             context=context,
             tg_file_id=file_id,
-            applicant_user_id=applicant_user_id,
+            user_type="applicant",
+            user_id=bot_user_id,
             file_type=video_kind
         )
 
@@ -594,6 +562,15 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
             await send_message_to_user(update, context, text=MISSING_VIDEO_RECORD_TEXT)
             return
 
+        # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
+
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"🤓 New applicant user {bot_user_id} has sent video."
+            )
+
     else:
 
     # ----- IF USER CHOSE "NO" ask for another video -----
@@ -601,138 +578,15 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
         await send_message_to_user(update, context, text=WAITING_FOR_ANOTHER_VIDEO_TEXT)
 
 
+async def say_goodbye_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # TAGS: [user_related]
+    """Say goodbye command."""
 
-##########################################
-# ------------ ADMIN COMMANDS ------------``
-##########################################
+    log_prefix = "say_goodbye_command"
+    logger.info(f"{log_prefix}: start")
 
+    await send_message_to_user(update, context, text=GOODBYE_TEXT_APPLICANT)
 
-async def send_message_to_admin(application: Application, text: str, parse_mode: Optional[ParseMode] = None) -> None:
-    #TAGS: [admin]
-
-    # ----- GET ADMIN ID from environment variables -----
-    
-    admin_id = os.getenv("ADMIN_ID", "")
-    if not admin_id:
-        logger.error("ADMIN_ID environment variable is not set. Cannot send admin notification.")
-        return
-    
-    # ----- SEND NOTIFICATION to admin -----
-    
-    try:
-        if application and application.bot:
-            await application.bot.send_message(
-                chat_id=int(admin_id),
-                text=text,
-                parse_mode=parse_mode
-            )
-            logger.debug(f"Admin notification sent successfully to admin_id: {admin_id}")
-        else:
-            logger.warning("Cannot send admin notification: application or bot instance not available")
-    except Exception as e:
-        logger.error(f"Failed to send admin notification: {e}", exc_info=True)
-
-
-async def admin_get_list_of_applicants_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #TAGS: [admin]
-    """
-    Admin command to list all applicant IDs from applicant records.
-    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
-    """
-
-    # ----- IDENTIFY USER and pull required data from records -----
-
-    bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    
-        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
-
-    admin_id = os.getenv("ADMIN_ID", "")
-    if not admin_id or bot_user_id != admin_id:
-        await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-        logger.error(f"Unauthorized for {bot_user_id}")
-        return
-
-    # ----- SEND LIST OF USERS IDs from records -----
-
-    applicant_records_file_path = get_applicant_bot_records_file_path()
-    with open(applicant_records_file_path, "r", encoding="utf-8") as f:
-        applicant_records = json.load(f)
-    applicant_user_ids = list(applicant_records.keys())
-
-    await send_message_to_user(update, context, text=f"📋 List of applicant user IDs: {applicant_user_ids}")
-
-
-async def admin_send_message_to_applicant_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #TAGS: [admin]
-    """
-    Admin command to send a message to a specific applicant by user_id (chat_id).
-    Usage: /admin_send_message_to_applicant <user_id> <message_text>
-    Usage example: /admin_send_message_to_applicant 7853115214 Привет! Как дела?
-    Sends notification to admin if fails
-    """
-    
-    try:
-        # ----- IDENTIFY USER and pull required data from records -----
-
-        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        
-    
-        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
-
-        admin_id = os.getenv("ADMIN_ID", "")
-        if not admin_id or bot_user_id != admin_id:
-            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
-            logger.error(f"Unauthorized for {bot_user_id}")
-            return
-
-        # ----- PARSE COMMAND ARGUMENTS -----
-
-        if not context.args or len(context.args) < 2:
-            await send_message_to_user(
-                update, 
-                context, 
-                text="⚠️ Неверный формат команды.\nИспользование: /admin_send_message_to_applicant <user_id> <текст_сообщения>"
-            )
-            return
-        
-        target_user_id = context.args[0]
-        message_text = " ".join(context.args[1:])  # Join all remaining arguments as message text
-
-        # ----- VALIDATE USER_ID -----
-
-        try:
-            target_user_id_int = int(target_user_id)
-        except ValueError:
-            await send_message_to_user(update, context, text=f"❌ Неверный формат user_id: {target_user_id}")
-            return
-
-        # ----- SEND MESSAGE TO USER -----
-
-        if context.application and context.application.bot:
-            try:
-                await context.application.bot.send_message(
-                    chat_id=target_user_id_int,
-                    text=message_text
-                )
-                await send_message_to_user(update, context, text=f"✅ Сообщение отправлено пользователю {target_user_id}:\n'{message_text}'")
-                logger.info(f"Admin {bot_user_id} sent message to user {target_user_id}: {message_text}")
-            except Exception as send_err:
-                error_msg = f"❌ Не удалось отправить сообщение пользователю {target_user_id}: {send_err}"
-                await send_message_to_user(update, context, text=error_msg)
-                logger.error(f"Failed to send message to user {target_user_id}: {send_err}", exc_info=True)
-                raise
-        else:
-            raise ValueError("Application or bot instance not available")
-    
-    except Exception as e:
-        logger.error(f"Failed to execute admin_send_message_to_applicant command: {e}", exc_info=True)
-        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-        # Send notification to admin about the error
-        if context.application:
-            await send_message_to_admin(
-                application=context.application,
-                text=f"⚠️ Error executing admin_send_message_to_user command: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
-            )
 
 
 
@@ -740,11 +594,11 @@ async def admin_send_message_to_applicant_command(update: Update, context: Conte
 # ------------ MAIN MENU related commands ------------
 ########################################################################################
 
-async def user_status(applicant_user_id: str) -> dict:
+async def user_status(applicant_user_id: str, negotiation_id: str) -> dict:
     status_dict = {}
     status_dict["bot_authorization"] = is_applicant_in_applicant_bot_records(applicant_record_id=applicant_user_id)
-    status_dict["privacy_policy_confirmation"] = is_applicant_privacy_policy_confirmed(applicant_record_id=applicant_user_id)
-    status_dict["welcome_video_shown"] = is_welcome_video_shown_to_applicant(applicant_record_id=applicant_user_id)
+    status_dict["privacy_policy_confirmation"] = is_privacy_policy_confirmed(applicant_record_id=applicant_user_id)
+    status_dict["welcome_video_shown"] = is_boolean_field_true_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="welcome_video_shown")
     status_dict["resume_video_recorded"] = is_resume_video_received(applicant_record_id=applicant_user_id)
     return status_dict
 

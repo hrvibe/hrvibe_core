@@ -131,11 +131,13 @@ ai_task_queue = TaskQueue(maxsize=500)
 async def send_message_to_admin(application: Application, text: str, parse_mode: Optional[ParseMode] = None) -> None:
     #TAGS: [admin]
 
+    log_prefix = "send_message_to_admin"
+
     # ----- GET ADMIN ID from environment variables -----
     
     admin_id = os.getenv("ADMIN_ID", "")
     if not admin_id:
-        logger.error("send_message_to_admin:ADMIN_ID environment variable is not set. Cannot send admin notification.")
+        logger.error(f"{log_prefix}: ADMIN_ID environment variable is not set. Cannot send admin notification.")
         return
     
     # ----- SEND NOTIFICATION to admin -----
@@ -147,11 +149,11 @@ async def send_message_to_admin(application: Application, text: str, parse_mode:
                 text=text,
                 parse_mode=parse_mode
             )
-            logger.debug(f"send_message_to_admin: Admin notification sent successfully to admin_id: {admin_id}")
+            logger.debug(f"{log_prefix}: Admin notification sent successfully to admin_id: {admin_id}")
         else:
-            logger.warning("send_message_to_admin: Cannot send admin notification: application or bot instance not available")
+            logger.warning(f"{log_prefix}: Cannot send admin notification: application or bot instance not available")
     except Exception as e:
-        logger.error(f"send_message_to_admin: Failed to send admin notification: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
 
 ########################################################################################
 # ------------ AUTOMATIC FLOW ON START - can be triggered by from MAIN MENU ------------
@@ -188,9 +190,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     
     # if already confirmed, second confirmation will be skipped
     await ask_privacy_policy_confirmation_command(update=update, context=context)
-
-
-
 
     # IMPORTANT: ALL OTHER COMMANDS will be triggered from functions if PRIVACY POLICY is confirmed
 
@@ -377,7 +376,7 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
             if context.application:
                 await send_message_to_admin(
                     application=context.application,
-                    text=f"😎 New user {bot_user_id} has given privacy policy confirmation. (new questionnaire)",
+                    text=f"😎 New user {bot_user_id} has given privacy policy confirmation.",
                 )
 
             # ----- SEND AUTHENTICATION REQUEST and wait for user to authorize -----
@@ -559,7 +558,7 @@ async def ask_to_record_video_command(update: Update, context: ContextTypes.DEFA
         await send_message_to_user(update, context, text=MISSING_VACANCY_SELECTION_TEXT)
         return
 
-    await send_message_to_user(update, context, text=INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT)
+    await send_message_to_user(update, context, text=INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT_MANAGER)
     await asyncio.sleep(1)
     await send_message_to_user(update, context, text=INFO_DROP_VIDEO_HERE_TEXT)
     logger.debug(f"{log_prefix}: instructions to shoot video sent")
@@ -647,6 +646,7 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
             update=update,
             context=context,
             tg_file_id=file_id,
+            user_type="manager",
             user_id=bot_user_id,
             file_type=video_kind
         )
@@ -1419,7 +1419,8 @@ async def send_message_to_applicant_command(negotiation_id: str) -> None:
         send_negotiation_message(access_token=access_token, negotiation_id=negotiation_id, user_message=negotiation_message_text)
         logger.info(f"{log_prefix}: Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="link_to_tg_bot_sent", new_value=True)
-        logger.info(f"{log_prefix}: DB record updated with 'link_to_tg_bot_sent' status as True for negotiation ID: {negotiation_id}")
+        current_time = datetime.now(timezone.utc).isoformat()
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="link_to_tg_bot_sent_time", new_value=current_time)
     except Exception as send_err:
         logger.error(f"{log_prefix}: Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
         # stop method execution in this case, because no need to update resume_records and negotiations status
@@ -1518,10 +1519,10 @@ async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
             logger.debug(f"{log_prefix}: No email found in resume data")
 
 
-        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_first_name", new_value=first_name)    
-        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_last_name", new_value=last_name)
-        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_phone", new_value=phone)
-        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_email", new_value=email)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="hh_first_name", new_value=first_name)    
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="hh_last_name", new_value=last_name)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="hh_phone", new_value=phone)
+        update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="hh_email", new_value=email)
 
         logger.debug(f"{log_prefix}: updated resume details in database")
  

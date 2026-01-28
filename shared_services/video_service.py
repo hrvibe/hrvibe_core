@@ -15,7 +15,7 @@ from shared_services.db_service import (
     get_column_value_by_field,
     update_column_value_by_field
 )
-from database import Managers, Vacancies
+from database import Managers, Vacancies, Negotiations
 
 # Add project root to path to access shared_services
 project_root = Path(__file__).parent.parent.parent
@@ -128,76 +128,120 @@ async def process_incoming_video(update: Update, context: ContextTypes.DEFAULT_T
     await ask_confirm_sending_video_command(update, context)
 
 
-async def download_incoming_video_locally(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, user_id: int, file_type: str) -> None:
+async def download_incoming_video_locally(update: Update, context: ContextTypes.DEFAULT_TYPE, tg_file_id: str, user_type: str, user_id: int, file_type: str) -> None:
     """Download video file to local storage"""
-    logger.info(f"download_incoming_video_locally called: user_id={user_id}, file_type={file_type}")
+
+    log_prefix = "download_incoming_video_locally"
+    logger.info(f"{log_prefix}: start")
+    logger.info(f"{log_prefix}: tg_file_id={tg_file_id}, user_type={user_type}, user_id={user_id}, file_type={file_type}")
+
+    
     try:
         query = update.callback_query
         bot_user_id = user_id
 
         video_dir_path = get_data_subdirectory_path(subdirectory_name="videos")
-        logger.info(f"download_incoming_video_locally: target video_dir_path={video_dir_path}")
-
-        vacancy_id = get_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="id")
-        
+        logger.info(f"{log_prefix}: target video_dir_path={video_dir_path}")
 
         if video_dir_path is None:
-            logger.error(f"download_incoming_video_locally: Target video_dir_path to save video not found.")
             raise ValueError(f"Video directory path not found.")
 
-        # Generate unique filename with appropriate extension
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        if file_type == "video_note":
-            filename = f"manager_id_{bot_user_id}_vacancy_id_{vacancy_id}_time_{timestamp}_note.mp4"
+        # ----- GENERATE UNIQUE FILENAME WITH APPROPRIATE EXTENSION -----
+
+        if user_type == "manager":
+            vacancy_id = get_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="id")
+            # Generate unique filename with appropriate extension
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            if file_type == "video_note":
+                filename = f"vacancy_id_{vacancy_id}_time_{timestamp}_note.mp4"
+            else:
+                filename = f"vacancy_id_{vacancy_id}_time_{timestamp}.mp4"
+
+        elif user_type == "applicant":
+            negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=bot_user_id, target_field_name="id")
+            # Generate unique filename with appropriate extension
+            timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            if file_type == "video_note":
+                filename = f"negotiation_id_{negotiation_id}_time_{timestamp}_note.mp4"
+            else:
+                filename = f"negotiation_id_{negotiation_id}_time_{timestamp}.mp4"
+
         else:
-            filename = f"manager_id_{bot_user_id}_vacancy_id_{vacancy_id}_time_{timestamp}.mp4"
+            raise ValueError(f"{log_prefix}: Invalid user type: {user_type}")
 
         video_file_path = video_dir_path / filename
-        logger.info(f"download_incoming_video_locally: Target video file path to save video for managers: {video_file_path}")
+        logger.info(f"{log_prefix}: Target video file path to save video: {video_file_path}")
 
         # Download the file
         if not tg_file_id:
-            raise ValueError("download_incoming_video_locally: Telegram file identifier is empty.")
+            raise ValueError(f"{log_prefix}: Telegram file identifier is empty.")
 
         try:
             tg_file = await context.bot.get_file(tg_file_id)
         except Exception as fetch_error:
-            raise RuntimeError(f"download_incoming_video_locally: Failed to fetch Telegram file: {fetch_error}") from fetch_error
+            raise RuntimeError(f"{log_prefix}: Failed to fetch Telegram file: {fetch_error}") from fetch_error
 
         await tg_file.download_to_drive(custom_path=str(video_file_path))
-        logger.info(f"download_incoming_video_locally: Target video file from manager downloaded to: {video_file_path}")
+        logger.info(f"{log_prefix}: Target video file downloaded to: {video_file_path}")
 
-        # Update user records with video received and video path
-        update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="video_received", new_value=True)
-        update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="video_path", new_value=str(video_file_path))
+        # ----- UPDATE USER RECORDS WITH VIDEO RECEIVED AND VIDEO PATH -----
 
-        logger.info(f"download_incoming_video_locally: User records updated with video received and video path")
+        if user_type == "manager":
+            update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="video_received", new_value=True)
+            update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="video_path", new_value=str(video_file_path))
+        
+        elif user_type == "applicant":
+            update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_received", new_value=True)
+            update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="video_path", new_value=str(video_file_path))
+
+        
+        logger.info(f"{log_prefix}: User records updated with video received and video path")
 
         # Clear pending video data from context object
         _clear_pending_video_data_from_context_object(context=context)
-        logger.info(f"download_incoming_video_locally: Pending video data cleared from context object")
+        logger.info(f"{log_prefix}: Pending video data cleared from context object")
         
         # Verify the file was created successfully
         if video_file_path.exists():
-            logger.info(f"download_incoming_video_locally: Video file was created successfully, calling read_vacancy_description_command")
-            
-            from manager_bot import read_vacancy_description_command
 
-            # ----- READ VACANCY DESCRIPTION -----
-            try:
-                await send_message_to_user(update, context, text=SUCCESS_TO_SAVE_VIDEO_TEXT)
-                await read_vacancy_description_command(update=update, context=context)
-                logger.info(f"download_incoming_video_locally: read_vacancy_description_command completed successfully")
-            except Exception as read_err:
-                logger.error(f"download_incoming_video_locally: Failed to call read_vacancy_description_command: {read_err}", exc_info=True)
-                raise
+            logger.info(f"{log_prefix}: Video file was created successfully.")
+            await send_message_to_user(update, context, text=SUCCESS_TO_SAVE_VIDEO_TEXT)
+
+
+
+            # ----- CALL NEXT COMMAND BASED ON USER TYPE -----
+            if user_type == "manager":
+
+                # ----- READ VACANCY DESCRIPTION -----
+
+                from manager_bot import read_vacancy_description_command
+
+                try:
+                    await read_vacancy_description_command(update=update, context=context)
+                    logger.info(f"{log_prefix}: read_vacancy_description_command completed successfully")
+                except Exception as e:
+                    logger.error(f"{log_prefix}: Failed to call read_vacancy_description_command: {e}", exc_info=True)
+                    raise  
+
+            elif user_type == "applicant":
+
+                # ----- SAY GOODBYE  -----
+
+                from applicant_bot import say_goodbye_command
+
+                try:
+                    await say_goodbye_command(update=update, context=context)
+                    logger.info(f"{log_prefix}: say_goodbye_command completed successfully")
+                except Exception as e:
+                    logger.error(f"{log_prefix}: Failed to call say_goodbye_command: {e}", exc_info=True)
+                    raise 
 
         else:
-            logger.error(f"download_incoming_video_locally: Video file not created after download: {video_file_path}")
+            logger.error(f"{log_prefix}: Video file not created after download: {video_file_path}")
             await send_message_to_user(update, context, text="Ошибка при скачивании видео. Пришлите заново, пожалуйста.")
-            raise FileNotFoundError(f"download_incoming_video_locally: Video file was not created at {video_file_path}")
+            raise FileNotFoundError(f"{log_prefix}: Video file was not created at {video_file_path}")
 
     except Exception as e:
-        logger.error(f"download_incoming_video_locally: Failed to download video: {str(e)}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {str(e)}", exc_info=True)
         raise
 
