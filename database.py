@@ -85,6 +85,7 @@ class Negotiations(Base):
     video_received = Column(Boolean, default=False, nullable=False)
     video_path = Column(String)
     resume_recommended = Column(Boolean, default=False, nullable=False)
+    resume_recommended_time = Column(TIMESTAMP(timezone=True))
     resume_accepted = Column(Boolean, default=False, nullable=False)
     interview_invitation_sent = Column(Boolean, default=False, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), default=func.now())

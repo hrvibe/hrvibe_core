@@ -21,6 +21,7 @@ from telegram.error import TelegramError
 from shared_services.constants import (
     FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT,
     FAIL_TECHNICAL_SUPPORT_TEXT,
+    INFO_ABOUT_SOURCING_CRITERIAS_TEXT
 )
 
 from shared_services.db_service import (
@@ -34,6 +35,10 @@ from shared_services.db_service import (
 
 from shared_services.data_service import (
     get_data_subdirectory_path
+)
+
+from shared_services.ai_service import (
+    format_sourcing_criterias_analysis_result_for_markdown,
 )
 
 from database import Managers, Vacancies, Negotiations, Base, SessionLocal
@@ -112,6 +117,62 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
     
     except Exception as e:
         logger.error(f"{log_info_msg}: Failed to execute command: {e}", exc_info=True)
+        # Send notification to admin about the error
+        if context.application:
+            await send_message_to_admin(
+                application=context.application,
+                text=f"⚠️ Error {log_info_msg}: {e}\nAdmin ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+            )
+
+
+async def admin_get_sourcing_criterais_visualization_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    #TAGS: [admin]
+    """
+    Admin command to get sourcing criterias visualization for a specific vacancy.
+    Usage: /command_name <vacancy_id>
+    Only accessible to users whose ID is in the ADMIN_IDS whitelist.
+    """
+
+    log_info_msg = "admin_get_sourcing_criterais_visualization_command"
+
+    try:
+        # ----- IDENTIFY USER and pull required data from records -----
+
+        bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
+        logger.info(f"{log_info_msg}: start")
+
+        #  ----- CHECK IF USER IS NOT AN ADMIN and STOP if it is -----
+
+        if not await _is_user_admin(bot_user_id=bot_user_id):
+            await send_message_to_user(update, context, text=FAIL_TO_IDENTIFY_USER_AS_ADMIN_TEXT)
+            return
+
+        # ----- PARSE COMMAND ARGUMENTS -----
+
+        vacancy_id = None
+        if context.args and len(context.args) == 1:
+            vacancy_id = context.args[0]
+            if vacancy_id:
+                # Verify that the vacancy exists
+                if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
+                    # Check if vacancy has description received
+                    if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="sourcing_criterias_recieved"):
+                        # Format and send result to user
+                        await send_message_to_user(update, context, text="😎 This how it will look for user:\n")
+                        formatted_result = format_sourcing_criterias_analysis_result_for_markdown(vacancy_id=vacancy_id)
+                        message_text = f"{INFO_ABOUT_SOURCING_CRITERIAS_TEXT}\n\n{formatted_result}"
+                        await send_message_to_user(update, context, text=message_text, parse_mode=ParseMode.MARKDOWN)
+                    else:
+                        raise ValueError(f"{log_info_msg}: Vacancy {vacancy_id} does not have sourcing criterias received.")     
+                else:
+                    raise ValueError(f"Vacancy {vacancy_id} not found in database.")  
+            else:
+                raise ValueError(f"Invalid command arguments. Usage: /command_name <vacancy_id>")
+        else:
+            raise ValueError(f"Invalid number of arguments. Usage: /command_name <vacancy_id>")
+    
+    except Exception as e:
+        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
