@@ -76,12 +76,13 @@ from shared_services.ai_service import (
 )
 
 from shared_services.questionnaire_service import (
-    ask_question_with_options, 
+    ask_question_with_options,
     handle_answer,
     send_message_to_user,
     clear_all_unprocessed_keyboards,
     ask_single_question_from_update,
     single_question_callback_handler,
+    ask_single_question_from_application,
 )
 
 
@@ -1094,7 +1095,7 @@ async def get_sourcing_criterias_from_ai_and_save_to_db(
         raise
 
 
-async def send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id: str, application: Application) -> None:
+async def send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_command(vacancy_id: str, application: Application) -> None:
 
     """
     Sends sourcing criterias analysis result to user and then asks for confirmation.
@@ -1102,7 +1103,7 @@ async def send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id:
     instance instead of `update` / `context`.
     """
 
-    log_info_msg = "send_to_user_sourcing_criterias_triggered_by_admin_command"
+    log_info_msg = "send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_command"
     logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
 
     try:
@@ -1158,58 +1159,23 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
                 f"User {bot_user_id} not found in database"
             )
 
-        # Build options (which will be tuples of (button_text, callback_data))
-        answer_options = [
-            ("Согласен с критериями отбора.", "sourcing_criterias_confirmation:yes"),
-            ("Не согласен, хочу изменить критерии отбора.", "sourcing_criterias_confirmation:no"),
+        # Use generic single-question helper from questionnaire_service
+        options = [
+            ("Согласен с критериями отбора.", "yes"),
+            ("Не согласен, хочу изменить критерии отбора.", "no"),
         ]
 
-        # Store options in per-user data via Application so that
-        # `handle_answer_sourcing_criterias_confirmation` can resolve button text later.
-        user_id_int = int(bot_user_id)
-        
-        # Try to store in application.user_data first (if it's writable)
-        stored_in_application = False
-        try:
-            if hasattr(application, "user_data") and application.user_data is not None:
-                # Check if user_data is writable (not a mappingproxy)
-                # Try to access it and see if we can modify it
-                if user_id_int in application.user_data:
-                    # Key exists, we can modify the inner dict
-                    application.user_data[user_id_int]["sourcing_criterias_confirmation_answer_options"] = answer_options
-                    stored_in_application = True
-                else:
-                    # Key doesn't exist, try to create it (will fail if user_data is read-only)
-                    try:
-                        application.user_data[user_id_int] = {"sourcing_criterias_confirmation_answer_options": answer_options}
-                        stored_in_application = True
-                    except (TypeError, AttributeError):
-                        # user_data is read-only (mappingproxy), can't create new keys
-                        pass
-        except (TypeError, AttributeError) as e:
-            logger.debug(f"{log_info_msg}: application.user_data is not writable: {e}")
-        
-        # Fallback to module-level storage if application.user_data is read-only
-        if not stored_in_application:
-            _sourcing_criterias_confirmation_options_storage[user_id_int] = answer_options
-            logger.debug(f"{log_info_msg}: Stored sourcing_criterias_confirmation_answer_options in module-level storage for user {bot_user_id}")
+        await ask_single_question_from_application(
+            application=application,
+            target_user_id=int(bot_user_id),
+            question_text=SOURCING_CRITERIAS_CONFIRMATION_TEXT,
+            options=options,
+            callback_prefix="sourcing_criterias_confirmation",
+        )
 
-        # Build inline keyboard and send question
-        keyboard = [
-            [InlineKeyboardButton(text=button_text, callback_data=callback_code)]
-            for button_text, callback_code in answer_options
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        if application and application.bot:
-            await application.bot.send_message(
-                chat_id=int(bot_user_id),
-                text=SOURCING_CRITERIAS_CONFIRMATION_TEXT,
-                reply_markup=reply_markup,
-            )
-            logger.info(
-                f"{log_info_msg}: sourcing criterias. confirmation question with options asked"
-            )
+        logger.info(
+            f"{log_info_msg}: sourcing criterias confirmation question with options asked"
+        )
 
     except Exception as e:
         logger.error(
@@ -1248,112 +1214,78 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
     logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
     
-    # ------- UNDERSTAND WHAT BUTTON was clicked and get "callback_data" from it -------
+    # ------- HANDLE ANSWER via generic single-question helper -------
 
-    # Get the "callback_data" extracted from "update.callback_query" object created once button clicked
-    selected_callback_code = await handle_answer(update, context)
-    logger.debug(f"{log_info_msg}: Selected callback code: {selected_callback_code}")
+    answer_key = await single_question_callback_handler(
+        update=update,
+        context=context,
+        callback_prefix="sourcing_criterias_confirmation",
+    )
+    logger.debug(f"{log_info_msg}: answer_key: {answer_key}")
 
-    # Now you can use callback_data or selected_option for your logic
-    if selected_callback_code is None:
-        logger.warning(f"{log_info_msg}: selected_callback_code is None")
+    if answer_key is None:
+        logger.warning(f"{log_info_msg}: answer_key is None")
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
 
-    # ----- UNDERSTAND TEXT on clicked buttton from options stored in application.user_data or module-level storage -----
-
-    # For admin-triggered flow we store answer options in application.user_data (if writable) or module-level storage (fallback)
-    sourcing_criterias_confirmation_answer_options = []
-    user_id_int = int(bot_user_id)
-    
-    # Try to get from application.user_data first
-    if context.application:
-        try:
-            if hasattr(context.application, "user_data") and user_id_int in context.application.user_data:
-                sourcing_criterias_confirmation_answer_options = context.application.user_data[user_id_int].get(
-                    "sourcing_criterias_confirmation_answer_options", []
-                )
-                if sourcing_criterias_confirmation_answer_options:
-                    logger.debug(
-                        f"{log_info_msg}: Retrieved sourcing_criterias_confirmation_answer_options from application.user_data for user {bot_user_id}"
-                    )
-        except (ValueError, KeyError, AttributeError) as e:
-            logger.debug(f"{log_info_msg}: Failed to retrieve options from application.user_data: {e}")
-    
-    # Fallback to module-level storage if not found in application.user_data
-    if not sourcing_criterias_confirmation_answer_options and user_id_int in _sourcing_criterias_confirmation_options_storage:
-        sourcing_criterias_confirmation_answer_options = _sourcing_criterias_confirmation_options_storage[user_id_int]
-        logger.debug(
-            f"{log_info_msg}: Retrieved sourcing_criterias_confirmation_answer_options from module-level storage for user {bot_user_id}"
-        )
-    
-    # find selected button text from callback_data
-    selected_button_text = None
-    for button_text, callback_code in sourcing_criterias_confirmation_answer_options:
-        if selected_callback_code == callback_code:
-            selected_button_text = button_text
-            # Clear sourcing criterias confirmation answer options from application.user_data
-            if context.application and hasattr(context.application, "user_data"):
-                try:
-                    if user_id_int in context.application.user_data:
-                        context.application.user_data[user_id_int].pop("sourcing_criterias_confirmation_answer_options", None)
-                except (ValueError, KeyError, AttributeError):
-                    pass
-            # Also clear from module-level storage if it was used
-            _sourcing_criterias_confirmation_options_storage.pop(user_id_int, None)
-            break
+    # Map answer_key to human-readable button text
+    options_text_map = {
+        "yes": "Согласен с критериями отбора.",
+        "no": "Не согласен, хочу изменить критерии отбора.",
+    }
+    selected_button_text = options_text_map.get(answer_key)
 
     # ----- INFORM USER about selected option -----
-
-    # If "options" is NOT an empty list and we found a matching button text, execute the following code
-    if sourcing_criterias_confirmation_answer_options and selected_button_text:
-        logger.debug(f"{log_info_msg}: sourcing_criterias_confirmation_answer_options exists and selected_button_text: {selected_button_text}")
-        await send_message_to_user(update, context, text=f"Вы выбрали: '{selected_button_text}'")
-    else:
-        # No options available or button text not found, inform user and return
-        logger.warning(
-            f"handle_answer_sourcing_criterias_confirmation: "
-            f"sourcing_criterias_confirmation_answer_options "
-            f"options_empty={not sourcing_criterias_confirmation_answer_options}, "
-            f"selected_button_text={selected_button_text}, "
-            f"selected_callback_code={selected_callback_code}, "
-            f"user_id={bot_user_id}"
+    if selected_button_text:
+        logger.debug(
+            f"{log_info_msg}: selected_button_text resolved from answer_key: {selected_button_text}"
         )
-        if update.callback_query and update.callback_query.message:
-            await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+        await send_message_to_user(
+            update,
+            context,
+            text=f"Вы выбрали: '{selected_button_text}'",
+        )
+    else:
+        logger.warning(
+            f"{log_info_msg}: Unknown answer_key={answer_key} for user_id={bot_user_id}"
+        )
+        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
 
     # ----- UPDATE USER RECORDS with selected vacancy data -----
 
     
-    logger.debug(f"{log_info_msg}: selected_callback_code: {selected_callback_code}")
-    sourcing_criterias_confirmation_user_decision = get_decision_status_from_selected_callback_code(selected_callback_code=selected_callback_code)
+    sourcing_criterias_confirmation_user_decision = answer_key
     
-    # Update user records with selected vacancy data
-
-    sourcing_criterias_confirmation_user_value = True if sourcing_criterias_confirmation_user_decision == "yes" else False
-    update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="sourcing_criterias_confirmed", new_value=sourcing_criterias_confirmation_user_value)
- 
+    # ----- IF USER CHOSE "YES" download video to local storage -----  
+     
     current_time = datetime.now(timezone.utc).isoformat()
-    update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="sourcing_criterias_confirmation_time", new_value=current_time)
-    
     logger.debug(f"{log_info_msg}: Sourcing criterias confirmation user decision: {sourcing_criterias_confirmation_user_decision} at {current_time}")
-
-    # ----- IF USER CHOSE "YES" download video to local storage -----              
-
+ 
     if sourcing_criterias_confirmation_user_decision == "yes":
 
-        await send_message_to_user(update, context, text=f"{SUCCESS_TO_GET_SOURCING_CRITERIAS_CONFIRMATION_TEXT}\n{SUCCESS_TO_START_SOURCING_TEXT}")
-        await send_message_to_admin(application=context.application, text=f"😎 User {bot_user_id} has confirmed sourcing criterias. Start sourcing manually.")
+        sourcing_criterias_confirmation_user_value = True
+        update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="sourcing_criterias_confirmed", new_value=sourcing_criterias_confirmation_user_value)
+        update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="sourcing_criterias_confirmation_time", new_value=current_time)
+        
+        user_msg = f"{SUCCESS_TO_GET_SOURCING_CRITERIAS_CONFIRMATION_TEXT}\n{SUCCESS_TO_START_SOURCING_TEXT}"
+        admin_msg = f"😎 User {bot_user_id} has confirmed sourcing criterias. Start sourcing manually."
 
     elif sourcing_criterias_confirmation_user_decision == "no":
 
-        await send_message_to_user(update, context, text="Хорошо, расскажите, почему вы не согласны с критериями отбора кандидатов.\n\nПришлите аудио-запись прямо в этот чат, пожалуйста.\n\nЯ подправлю критерии и пришлю на согласование снова.")
-        await send_message_to_admin(application=context.application, text=f"😎 User {bot_user_id} has NOT confirmed sourcing criterias. Asked for feedback. Waiting.")
+        sourcing_criterias_confirmation_user_value = False
+        update_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="sourcing_criterias_confirmed", new_value=sourcing_criterias_confirmation_user_value)
+
+        user_msg = f"Хорошо, расскажите, почему вы не согласны с критериями отбора кандидатов.\n\nПришлите аудио-запись прямо в этот чат, пожалуйста.\n\nЯ подправлю критерии и пришлю на согласование снова."
+        admin_msg = f"😎 User {bot_user_id} has NOT confirmed sourcing criterias. Asked for feedback. Waiting."
 
     else:   
 
-        await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
+        user_msg = FAIL_TECHNICAL_SUPPORT_TEXT
+        admin_msg = f"😎 User {bot_user_id} something went wrong with sourcing criterias!"
+
+    await send_message_to_user(update, context, text=user_msg)
+    await send_message_to_admin(application=context.application, text=admin_msg)
 
 
 ########################################################################################
@@ -1726,6 +1658,7 @@ async def resume_analysis_from_ai_to_user_sort_resume(
 
 
 async def send_recommendation_text_to_specified_user(whom_to_send: str, negotiation_id: str) -> None:
+    
     func_name = "send_recommendation_text_to_specified_user"
     log_info_msg = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
     logger.info(f"{log_info_msg}: start")
@@ -1812,112 +1745,133 @@ async def send_recommendation_video_to_specified_user_with_questionnaire(whom_to
                 )
             logger.info(f"{log_info_msg}: recommendation video has been successfully sent to user {whom_to_send}")
 
-            # Send inline keyboard with actions
-            invite_button = InlineKeyboardButton(
-                text="Позвать кандидата",
-                callback_data=f"invite_candidate:{negotiation_id}",
-            )
-            reject_button = InlineKeyboardButton(
-                text="Отказать кандидату",
-                callback_data=f"reject_candidate:{negotiation_id}",
-            )
-            keyboard = InlineKeyboardMarkup([[invite_button, reject_button]])
+            # Ask a question with actions using generic questionnaire helper
+            # callback_data format will be:
+            #   "<INVITE_TO_INTERVIEW_CALLBACK_PREFIX>:<action>:<negotiation_id>"
+            options = [
+                ("Позвать кандидата", f"invite:{negotiation_id}"),
+                ("Отказать кандидату", f"reject:{negotiation_id}"),
+            ]
 
-            await application.bot.send_message(
-                chat_id=int(whom_to_send),
-                text="Что делаем с кандидатом?",
-                reply_markup=keyboard,
-                parse_mode=ParseMode.HTML,
+            await ask_single_question_from_application(
+                application=application,
+                target_user_id=int(whom_to_send),
+                question_text="Хотите пригласить кандидата на интервью?",
+                options=options,
+                callback_prefix=INVITE_TO_INTERVIEW_CALLBACK_PREFIX,
             )
-            logger.info(f"{log_info_msg}: action buttons sent to user {whom_to_send}")
+            logger.info(f"{log_info_msg}: action question sent to user {whom_to_send}")
 
         except Exception as e:
-            logger.error(f"{log_info_msg}: Failed to send video or buttons to user {whom_to_send}: {e}", exc_info=True)
+            logger.error(f"{log_info_msg}: Failed to send video or question to user {whom_to_send}: {e}", exc_info=True)
             raise
     except Exception as e:
         logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         raise
 
 
-async def handle_invite_to_interview_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # TAGS: [recommendation_related]
+async def handle_answer_invite_to_interview_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    # TAGS: [recommendation_related] 
     """Handle invite to interview button click. Sends notification to admin.
     Sends notification to admin if fails"""
     
-    if not update.callback_query:
-        return
-    
+
+    log_info_msg = "handle_answer_invite_to_interview_button"
+    logger.info(f"{log_info_msg}: start")
+
     try:
+        if not update.callback_query:
+            return
+
         # ----- IDENTIFY USER and pull required data from callback -----
-        
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"handle_invite_to_interview_button started. user_id: {bot_user_id}")
-        
-        # Use handle_answer() from questionnaire_service to extract callback_data and handle keyboard removal
-        callback_data = await handle_answer(update, context, remove_keyboard=True)
-        
-        if not callback_data or not callback_data.startswith(INVITE_TO_INTERVIEW_CALLBACK_PREFIX):
-            raise ValueError(f"Invalid callback_data for invite to interview: {callback_data}")
+        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
 
+        # Use generic single-question helper from questionnaire_service
+        answer_key = await single_question_callback_handler(
+            update=update,
+            context=context,
+            callback_prefix=INVITE_TO_INTERVIEW_CALLBACK_PREFIX,
+        )
+        logger.debug(f"{log_info_msg}: answer_key: {answer_key}")
 
-        # ----- EXTRACT DATA from callback_data -----
+        if not answer_key:
+            raise ValueError("Empty answer_key for invite to interview question")
 
-        parts = callback_data.split(":")
-        if len(parts) != 2:
-            raise ValueError(f"Invalid callback_data format for invite to interview: {callback_data}")
+        # ----- EXTRACT DATA from answer_key -----
+
+        # answer_key format: "<action>:<negotiation_id>"
+        try:
+            action, negotiation_id = answer_key.split(":", 1)
+        except ValueError:
+            raise ValueError(f"Invalid answer_key format for invite to interview: {answer_key}")
+
+        vacancy_id = get_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="vacancy_id")
+        if not vacancy_id:
+            raise ValueError(f"{log_info_msg}: vacancy_id not found in database for negotiation {negotiation_id}")
+
+        vacancy_name = get_column_value_by_field(db_model=Vacancies, record_id=vacancy_id, field_name="vacancy_name")
+        if not vacancy_name:
+            raise ValueError(f"{log_info_msg}: vacancy_name not found in database for vacancy {vacancy_id}")
         
-        # Unpack (destruct) tuple to assign values from a list to variables.
-        callback_prefix, resume_id = parts
-        
-        # Get user_id and vacancy_id from records (user_id is bot_user_id from update)
-        user_id = bot_user_id
-        vacancy_id = get_target_vacancy_id_from_records(record_id=bot_user_id)
-        vacancy_name = get_target_vacancy_name_from_records(record_id=bot_user_id)
+        manager_id = get_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="manager_id")
+        if not manager_id:
+            raise ValueError(f"{log_info_msg}: manager_id not found in database for negotiation {negotiation_id}")
 
-        # ----- SEND NOTIFICATION TO ADMIN -----
-            
-        if context.application:
+        current_time = datetime.now(timezone.utc).isoformat()
+        is_accepted = None
+
+        # Build admin message based on user action
+        if action == "invite":
+
+            is_accepted = True
+
+            user_msg = f"Отлично, мы вам и кандидату, чтобы договоритьсяо времени интервью."
+
             admin_message = (
-                f"📞 Пользователь {user_id}.\n"
-                f"хочет пригласить кандидата {resume_id} на интервью.\n"
+                f"📞 Пользователь {manager_id}.\n"
+                f"хочет пригласить кандидата {negotiation_id} на интервью.\n"
                 f"Вакансия: {vacancy_id}: {vacancy_name}.\n"
-                f"Резюме кандидата: {resume_id}."
             )
-            await send_message_to_admin(
-                application=context.application,
-                text=admin_message
+
+        elif action == "reject":
+
+            is_accepted = False
+
+            user_msg = f"Хорошо, приглашать этого кандидата не будем.\nРасскажите, почему вы не согласны с критериями отбора кандидатов.\n\nПришлите аудио-запись прямо в этот чат, пожалуйста.\n\nЯ учту ваши пожелания и подправлю критерии отбора кандидатов."
+
+            admin_message = (
+                f"📞 Пользователь {manager_id}.\n"
+                f"решил ОТКАЗАТЬ кандидату {negotiation_id}.\n"
+                f"Вакансия: {vacancy_id}: {vacancy_name}.\n"
+                f"Ждем обратную связь по аудио"
             )
-            
-
-            resume_records_file_path = get_resume_records_file_path(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-            # Read existing data
-            with open(resume_records_file_path, "r", encoding="utf-8") as f:
-                resume_records = json.load(f)
-            resume_record_id_data = resume_records[resume_id]
-
-            # ----- GET VALUES for TEXT -----
-
-            first_name = resume_record_id_data["first_name"]
-            last_name = resume_record_id_data["last_name"]
-            
-            msg_text = INVITE_TO_INTERVIEW_SENT_TEXT_START + f"'{first_name} {last_name}'" + INVITE_TO_INTERVIEW_SENT_TEXT_END
-            # Confirm to user (keyboard already removed by handle_answer())
-            await send_message_to_user(update, context, text=msg_text)
-
-            update_resume_record_with_top_level_key(bot_user_id=bot_user_id, vacancy_id=vacancy_id, resume_record_id=resume_id, key="resume_accepted", value="yes")
-            # If cannot update resume records, ValueError is raised from method: update_resume_record_with_top_level_key()
-            logger.info(f"handle_invite_to_interview_button: Resume records for resume {resume_id} has been successfully updated with accepted status 'yes'")
-            
         else:
-            raise ValueError(f"Invalid callback_data format for invite to interview: {callback_data}")
+
+            user_msg = FAIL_TECHNICAL_SUPPORT_TEXT
+            admin_message = f"😎 User {bot_user_id} something went wrong with invite to interview!"
+
+            raise ValueError(f"Unknown action '{action}' in invite to interview flow")
+
+        if is_accepted is not None:
+            update_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="resume_accepted", new_value=is_accepted)
+            update_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="resume_decision_time", new_value=current_time)
+
+        await send_message_to_user(update, context, text=user_msg)
+        # ----- SEND NOTIFICATION TO ADMIN & UPDATE STATE -----
+        if context.application:
+            await send_message_to_admin(application=context.application, text=admin_message)
+        else:
+            raise ValueError(f"{log_info_msg}: application instance not provided")
+
     except Exception as e:
-        logger.error(f"Failed to handle invite to interview: {e}", exc_info=True)
+        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error handling invite to interview: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -2227,7 +2181,7 @@ def create_manager_application(token: str) -> Application:
     application.add_handler(CallbackQueryHandler(handle_answer_policy_confirmation, pattern=r"^privacy_policy_confirmation:"))
     application.add_handler(CallbackQueryHandler(handle_answer_sourcing_criterias_confirmation, pattern=r"^sourcing_criterias_confirmation:"))
     application.add_handler(CallbackQueryHandler(handle_chat_menu_action, pattern=r"^menu_action:"))
-    #application.add_handler(CallbackQueryHandler(handle_invite_to_interview_button, pattern=r"^invite_to_interview:"))
+    application.add_handler(CallbackQueryHandler(handle_answer_invite_to_interview_button, pattern=r"^invite_to_interview:"))
     
     menu_buttons_pattern = f"^({re.escape(BTN_MENU)}|{re.escape(BTN_FEEDBACK)})$"
     application.add_handler(

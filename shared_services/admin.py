@@ -216,9 +216,9 @@ async def admin_send_sourcing_criterais_to_user_command(update: Update, context:
                     if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="sourcing_criterias_recieved"):
                         # Import here to avoid circular dependency
                         logger.debug(f"{log_info_msg}: call manager_bot command")
-                        from manager_bot.manager_bot import send_to_user_sourcing_criterias_triggered_by_admin_command
-                        await send_to_user_sourcing_criterias_triggered_by_admin_command(vacancy_id=vacancy_id, application=context.application)
-                        await send_message_to_user(update, context, text=f"😎 Sent sourcing criteria for vacancy {vacancy_id} to user. Waiting for feedback.")
+                        from manager_bot.manager_bot import send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_command
+                        await send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_command(vacancy_id=vacancy_id, application=context.application)
+                        await send_message_to_user(update, context, text=f"😎 Sourcing criteria for vacancy {vacancy_id} sent to user together with a questionnaire. Waiting for feedback.")
                     else:
                         raise ValueError(f"Vacancy {vacancy_id} does not have sourcing criterias received.")     
                 else:
@@ -512,14 +512,14 @@ async def admin_source_and_analyze_resume_command(update: Update, context: Conte
 
 
 
-async def admin_get_resume_recommendation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    #TAGS: [admin]
+async def admin_get_recommendation_visualization_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    #TAGS: [admin] 
     """
     Admin command to analyze resume for a specific negotiation.
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
-    log_info_msg = "admin_get_resume_recommendation_command"
+    log_info_msg = "admin_get_recommendation_visualization_command"
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
@@ -562,14 +562,14 @@ async def admin_get_resume_recommendation_command(update: Update, context: Conte
 
 
 
-async def admin_recommend_resumes_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def admin_send_recommendation_to_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     #TAGS: [admin]
     """
     Admin command to recommend applicants with video for all users.
     Only accessible to users whose ID is in the ADMIN_IDS whitelist.
     """
 
-    log_info_msg = "admin_recommend_resumes_command"
+    log_info_msg = "admin_send_recommendation_to_user_command"
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----

@@ -87,7 +87,7 @@ class Negotiations(Base):
     resume_recommended = Column(Boolean, default=False, nullable=False)
     resume_recommended_time = Column(TIMESTAMP(timezone=True))
     resume_accepted = Column(Boolean, default=False, nullable=False)
-    interview_invitation_sent = Column(Boolean, default=False, nullable=False)
+    resume_decision_time = Column(TIMESTAMP(timezone=True))
     created_at = Column(TIMESTAMP(timezone=True), default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
 
