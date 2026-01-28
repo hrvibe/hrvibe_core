@@ -101,6 +101,7 @@ async def admin_anazlyze_sourcing_criterais_command(update: Update, context: Con
                     if is_boolean_field_true_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="description_recieved"):
                         # Import here to avoid circular dependency
                         logger.debug(f"{log_info_msg}: call manager_bot command")
+                        await send_message_to_user(update, context, text=f"😎 Starting the task for defining sourcing criterias for vacancy {vacancy_id}...")
                         from manager_bot.manager_bot import define_sourcing_criterias_triggered_by_admin_command
                         await define_sourcing_criterias_triggered_by_admin_command(vacancy_id=vacancy_id)
                         if is_value_in_db(db_model=Vacancies, field_name="id", value=vacancy_id):
@@ -471,6 +472,7 @@ async def admin_source_and_analyze_resume_command(update: Update, context: Conte
                     logger.debug(f"{log_info_msg}: call manager_bot command")
                     from manager_bot.manager_bot import source_resume_triggered_by_admin_command,analyze_resume_triggered_by_admin_command
                     await source_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
+                    await send_message_to_user(update, context, text=f"😎 Resume sourced for negotiation {negotiation_id}. Starting analysis...")
                     await analyze_resume_triggered_by_admin_command(negotiation_id=negotiation_id)
                     
                     # Wait for analysis to complete (polling with timeout)
@@ -543,8 +545,16 @@ async def admin_get_recommendation_visualization_command(update: Update, context
                     # Import here to avoid circular dependency
                     logger.debug(f"{log_info_msg}: call manager_bot command")
                     from manager_bot.manager_bot import send_recommendation_text_to_specified_user, send_recommendation_video_to_specified_user_without_questionnaire
-                    await send_recommendation_text_to_specified_user(whom_to_send=bot_user_id, negotiation_id=negotiation_id)
-                    await send_recommendation_video_to_specified_user_without_questionnaire(whom_to_send=bot_user_id, negotiation_id=negotiation_id, application=context.application)
+                    await send_recommendation_text_to_specified_user(
+                        whom_to_send=bot_user_id,
+                        negotiation_id=negotiation_id,
+                        application=context.application,
+                    )
+                    await send_recommendation_video_to_specified_user_without_questionnaire(
+                        whom_to_send=bot_user_id,
+                        negotiation_id=negotiation_id,
+                        application=context.application,
+                    )
                 else:
                     raise ValueError(f"Negotiation {negotiation_id} not found in database.")
             else:
@@ -597,12 +607,16 @@ async def admin_send_recommendation_to_user_command(update: Update, context: Con
                     manager_id = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="manager_id")
 
                     from manager_bot.manager_bot import send_recommendation_text_to_specified_user, send_recommendation_video_to_specified_user_with_questionnaire
-                    await send_recommendation_text_to_specified_user(whom_to_send=manager_id, negotiation_id=negotiation_id)
-                    await send_recommendation_video_to_specified_user_with_questionnaire(whom_to_send=manager_id, negotiation_id=negotiation_id, application=context.application)
-                
-                    # as sent to manager => update DB status "resume_recommended" to True
-                    update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_recommended", new_value=True)
-                
+                    await send_recommendation_text_to_specified_user(
+                        whom_to_send=manager_id,
+                        negotiation_id=negotiation_id,
+                        application=context.application,
+                    )
+                    await send_recommendation_video_to_specified_user_with_questionnaire(
+                        whom_to_send=manager_id,
+                        negotiation_id=negotiation_id,
+                        application=context.application,
+                    )
                 
                 else:
                     raise ValueError(f"Negotiation {negotiation_id} not found in database.")

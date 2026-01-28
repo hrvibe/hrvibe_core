@@ -112,7 +112,6 @@ from shared_services.data_service import (
     format_oauth_link_text,
     create_resume_records_file,
     get_resume_records_file_path,
-    get_path_to_video_from_applicant_from_resume_records,
     update_user_records_with_top_level_key, 
     #get_vacancy_directory,
     #create_record_for_new_resume_id_in_resume_records,
@@ -122,8 +121,6 @@ from shared_services.data_service import (
     #get_access_token_from_records,
     #get_target_vacancy_id_from_records,
     #get_target_vacancy_name_from_records,
-    get_list_of_resume_ids_for_recommendation,
-    get_negotiation_id_from_resume_record,
 )
 
 from database import (
@@ -193,8 +190,8 @@ async def send_message_to_admin(application: Application, text: str, parse_mode:
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Start command handler."""
 
-    log_info_msg = "start_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "start_command"
+    logger.info(f"{log_prefix}: start")
 
     # ----- SETUP NEW USER and send welcome message -----
 
@@ -215,20 +212,20 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 async def setup_new_user_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
 
-    log_info_msg = "setup_new_user_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "setup_new_user_command"
+    logger.info(f"{log_prefix}: start")
 
     try:
         # ------ COLLECT NEW USER ID and CREATE record and user directory if needed ------
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
         # ----- CHECK IF USER is in records and CREATE record and user directory if needed -----
         
         if not is_value_in_db(db_model=Managers, field_name="id", value=bot_user_id):
             create_new_record_in_db(db_model=Managers, record_id=bot_user_id)
-            logger.info(f"{log_info_msg}: user record created for user_id {bot_user_id}")
+            logger.info(f"{log_prefix}: user record created for user_id {bot_user_id}")
 
         # ------ ENRICH RECORDS with NEW USER DATA ------
 
@@ -239,7 +236,7 @@ async def setup_new_user_command(update: Update, context: ContextTypes.DEFAULT_T
             user_details += f"{item}: {tg_user_attribute_value}\n"
             update_record_in_db(db_model=Managers, record_id=bot_user_id, updates={item: tg_user_attribute_value})
             # If cannot update user records, ValueError is raised from method: update_user_records_with_top_level_key()
-        logger.debug(f"{log_info_msg}: user {bot_user_id} in user records is updated with telegram user attributes.")
+        logger.debug(f"{log_prefix}: user {bot_user_id} in user records is updated with telegram user attributes.")
         
         # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
 
@@ -251,37 +248,37 @@ async def setup_new_user_command(update: Update, context: ContextTypes.DEFAULT_T
             )
         
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
 async def ask_privacy_policy_confirmation_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
 
-    log_info_msg = "ask_privacy_policy_confirmation_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "ask_privacy_policy_confirmation_command"
+    logger.info(f"{log_prefix}: start")
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
         if not is_value_in_db(db_model=Managers, field_name="id", value=bot_user_id):
             await send_message_to_user(update, context, text=FAIL_TO_FIND_USER_IN_RECORDS_TEXT)
-            raise ValueError(f"{log_info_msg}: user {bot_user_id} not found in database")
+            raise ValueError(f"{log_prefix}: user {bot_user_id} not found in database")
 
         # ----- CHECK IF PRIVACY POLICY is already confirmed and STOP if it is -----
 
         if is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="privacy_policy_confirmed"):
             await send_message_to_user(update, context, text=SUCCESS_TO_GET_PRIVACY_POLICY_CONFIRMATION_TEXT)
-            logger.info(f"{log_info_msg}: privacy policy already confirmed for user_id {bot_user_id}")
+            logger.info(f"{log_prefix}: privacy policy already confirmed for user_id {bot_user_id}")
             return
 
         # Build options (button_text, answer_key)
@@ -301,29 +298,29 @@ async def ask_privacy_policy_confirmation_command(update: Update, context: Conte
             options=local_answer_options,
             callback_prefix="privacy_policy_confirmation",
         )
-        logger.info(f"{log_info_msg}: privacy policy confirmation question with options asked")
+        logger.info(f"{log_prefix}: privacy policy confirmation question with options asked")
 
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
 async def handle_answer_policy_confirmation(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
 
-    log_info_msg = "handle_answer_policy_confirmation"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "handle_answer_policy_confirmation"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
     # ------- UNDERSTAND WHAT BUTTON was clicked and get answer_key -------
 
@@ -334,7 +331,7 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
     )
     if answer_key is None:
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-        logger.error(f"{log_info_msg}: no answer_key found")
+        logger.error(f"{log_prefix}: no answer_key found")
         return
 
     # ----- UNDERSTAND TEXT on clicked buttton from options stored in context -----
@@ -348,7 +345,7 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
     for button_text, key in privacy_policy_confirmation_answer_options:
         if key == answer_key:
             selected_button_text = button_text
-            logger.info(f"{log_info_msg}: selected button text fetched {selected_button_text}")
+            logger.info(f"{log_prefix}: selected button text fetched {selected_button_text}")
             break
 
     # Clear stored options as they are no longer needed
@@ -361,7 +358,7 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
     else:
         # No options available, inform user and return
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
-        logger.error(f"{log_info_msg}: no selected button text found")
+        logger.error(f"{log_prefix}: no selected button text found")
         return
 
     # ----- UPDATE USER RECORDS with selected decision -----
@@ -383,7 +380,7 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
             updates={"privacy_policy_confirmation_time": current_time},
         )
 
-        logger.debug(f"{log_info_msg}: Privacy policy confirmation user {bot_user_id} decision: {privacy_policy_confirmation_user_decision} at {current_time}")
+        logger.debug(f"{log_prefix}: Privacy policy confirmation user {bot_user_id} decision: {privacy_policy_confirmation_user_decision} at {current_time}")
 
         # ----- IF USER CHOSE "YES" -----
 
@@ -408,14 +405,14 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
 async def hh_authorization_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
 
-    log_info_msg = "hh_authorization_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "hh_authorization_command"
+    logger.info(f"{log_prefix}: start")
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
         
         # ----- CHECK IF NO Privacy policy consent or AUTHORIZAED already and STOP if it is -----
         if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="privacy_policy_confirmed"):
@@ -467,7 +464,7 @@ async def hh_authorization_command(update: Update, context: ContextTypes.DEFAULT
                         update_record_in_db(db_model=Managers, record_id=bot_user_id, updates={"access_token_expires_at": expires_at})
                         # If cannot update user records, ValueError is raised from method: update_user_records_with_top_level_key()
 
-                    logger.info(f"{log_info_msg}: Authorization successful on attempt {attempt}. Access token '{access_token}' and expires_at '{expires_at}' updated in records.")
+                    logger.info(f"{log_prefix}: Authorization successful on attempt {attempt}. Access token '{access_token}' and expires_at '{expires_at}' updated in records.")
                     await send_message_to_user(update, context, text=AUTH_SUCCESS_TEXT)
 
         # ----- PULL USER DATA from HH and enrich records with it -----
@@ -484,13 +481,13 @@ async def hh_authorization_command(update: Update, context: ContextTypes.DEFAULT
             return
     
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -498,21 +495,21 @@ async def pull_user_data_from_hh_command(update: Update, context: ContextTypes.D
     # TAGS: [user_related]
     """Pull user data from HH and enrich records with it."""
 
-    log_info_msg = "pull_user_data_from_hh_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "pull_user_data_from_hh_command"
+    logger.info(f"{log_prefix}: start")
     
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
         access_token = get_column_value_in_db(db_model=Managers, record_id=bot_user_id, field_name="access_token")
 
         # ----- CHECK IF USER DATA is already in records and STOP if it is -----
 
         # Check if user is already authorized, if not, pull user data from HH
         if get_column_value_in_db(db_model=Managers, record_id=bot_user_id, field_name="hh_data") is not None:
-            logger.debug(f"{log_info_msg}: user {bot_user_id} already has HH data in user record.")
+            logger.debug(f"{log_prefix}: user {bot_user_id} already has HH data in user record.")
             return 
             
         # ----- PULL USER DATA from HH and enrich records with it -----
@@ -530,12 +527,12 @@ async def pull_user_data_from_hh_command(update: Update, context: ContextTypes.D
         await select_vacancy_command(update=update, context=context)
     
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -543,13 +540,13 @@ async def ask_to_record_video_command(update: Update, context: ContextTypes.DEFA
     # TAGS: [user_related]
     """Ask to record video command.""" 
 
-    log_info_msg = "ask_to_record_video_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "ask_to_record_video_command"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
     # Get status of video received from Vacancies table by manager_id
     is_vacancy_video_received = get_column_value_by_field(
@@ -560,39 +557,39 @@ async def ask_to_record_video_command(update: Update, context: ContextTypes.DEFA
     )
 
     if is_vacancy_video_received:
-        logger.debug(f"{log_info_msg}: user {bot_user_id} already has welcome video recorded.")
+        logger.debug(f"{log_prefix}: user {bot_user_id} already has welcome video recorded.")
         await send_message_to_user(update, context, text=SUCCESS_TO_RECORD_VIDEO_TEXT)
         return
 
     # ----- CHECK MUST CONDITIONS are met and STOP if not -----
 
     if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="privacy_policy_confirmed"):
-        logger.debug(f"{log_info_msg}: user {bot_user_id} doesn't have privacy policy confirmed.")
+        logger.debug(f"{log_prefix}: user {bot_user_id} doesn't have privacy policy confirmed.")
         await send_message_to_user(update, context, text=MISSING_PRIVACY_POLICY_CONFIRMATION_TEXT)
         return
 
     if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="vacancy_selected"):
-        logger.debug(f"{log_info_msg}: user {bot_user_id} doesn't have target vacancy selected.")
+        logger.debug(f"{log_prefix}: user {bot_user_id} doesn't have target vacancy selected.")
         await send_message_to_user(update, context, text=MISSING_VACANCY_SELECTION_TEXT)
         return
 
     await send_message_to_user(update, context, text=INSTRUCTIONS_TO_SHOOT_VIDEO_TEXT)
     await asyncio.sleep(1)
     await send_message_to_user(update, context, text=INFO_DROP_VIDEO_HERE_TEXT)
-    logger.debug(f"{log_info_msg}: instructions to shoot video sent")
+    logger.debug(f"{log_prefix}: instructions to shoot video sent")
 
 
 async def ask_confirm_sending_video_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # TAGS: [user_related]
     """Ask confirm sending video command handler. """
 
-    log_info_msg = "ask_confirm_sending_video_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "ask_confirm_sending_video_command"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
     # Use generic single-question helper from questionnaire_service
     options = [
@@ -618,13 +615,13 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
     """
     
 
-    log_info_msg = "handle_answer_confrim_sending_video"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "handle_answer_confrim_sending_video"
+    logger.info(f"{log_prefix}: start")
 
     # ----- IDENTIFY USER and pull required data from records -----
 
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
     # ------- UNDERSTAND WHAT BUTTON was clicked using generic questionnaire helper -------
 
@@ -634,7 +631,7 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
         callback_prefix="sending_video_confirmation",
     )
     if answer_key is None:
-        logger.debug(f"{log_info_msg}: no matching answer_key returned")
+        logger.debug(f"{log_prefix}: no matching answer_key returned")
         return
 
     # --- UPDATE USER RECORDS with selected option ---
@@ -648,7 +645,7 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
         target_field_name="video_sending_confirmed",
         new_value=new_value,
     )
-    logger.debug(f"{log_info_msg}: Vacancies Database 'video_sending_confirmed' field updated to {new_value}")
+    logger.debug(f"{log_prefix}: Vacancies Database 'video_sending_confirmed' field updated to {new_value}")
 
     # ----- IF USER CHOSE "YES" start video download  -----
 
@@ -701,14 +698,14 @@ async def select_vacancy_command(update: Update, context: ContextTypes.DEFAULT_T
     """Asks users to select a vacancy to work with. 
     Called from: 'pull_user_data_from_hh_command'."""
 
-    log_info_msg = "select_vacancy_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "select_vacancy_command"
+    logger.info(f"{log_prefix}: start")
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
 
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
         access_token = get_column_value_in_db(db_model=Managers, record_id=bot_user_id, field_name="access_token")
 
         # ----- CHECK IF Privacy confirmed and VACANCY is selected and STOP if it is -----
@@ -772,11 +769,11 @@ async def select_vacancy_command(update: Update, context: ContextTypes.DEFAULT_T
         )
     
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)        # Send notification to admin about the error
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)        # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -796,14 +793,14 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
     """
     
 
-    log_info_msg = "handle_answer_select_vacancy"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "handle_answer_select_vacancy"
+    logger.info(f"{log_prefix}: start")
 
     try:
         # ----- IDENTIFY USER and pull required data from records -----
         
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
         
         # ------- UNDERSTAND WHAT BUTTON was clicked -------
 
@@ -813,13 +810,13 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
             callback_prefix="vacancy_select",
         )
         if answer_key is None:
-            logger.debug(f"{log_info_msg}: no matching answer_key returned")
+            logger.debug(f"{log_prefix}: no matching answer_key returned")
             return
 
         # ------- CREATE VACANCY RECORD for selected vacancy  -------
 
         target_vacancy_id = str(answer_key)
-        logger.debug(f"{log_info_msg}: target vacancy id fetched {target_vacancy_id}")
+        logger.debug(f"{log_prefix}: target vacancy id fetched {target_vacancy_id}")
         if not target_vacancy_id:
             raise ValueError(f"No target_vacancy_id {target_vacancy_id} found in callback_data")
 
@@ -843,7 +840,7 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
                 break
 
         if not selected_option:
-            raise ValueError(f"{log_info_msg}: Selected vacancy option not found for callback_data {answer_key}")
+            raise ValueError(f"{log_prefix}: Selected vacancy option not found for callback_data {answer_key}")
 
         vacancy_name_value = selected_option[0]
 
@@ -853,7 +850,7 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
             record_id=bot_user_id,
             updates={"vacancy_selected": True},
         )
-        logger.debug(f"{log_info_msg}: Managers record updated with vacancy_selected = True")
+        logger.debug(f"{log_prefix}: Managers record updated with vacancy_selected = True")
         create_new_record_in_db(
             db_model=Vacancies,
             record_id=target_vacancy_id,
@@ -862,7 +859,7 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
                 "name": vacancy_name_value,
             },
         )
-        logger.debug(f"{log_info_msg}: Vacancies record created for vacancy {target_vacancy_id}")
+        logger.debug(f"{log_prefix}: Vacancies record created for vacancy {target_vacancy_id}")
 
         # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
 
@@ -891,13 +888,13 @@ async def handle_answer_select_vacancy(update: Update, context: ContextTypes.DEF
         await ask_to_record_video_command(update=update, context=context)
     
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -906,12 +903,12 @@ async def read_vacancy_description_command(update: Update, context: ContextTypes
     """Read vacancy description and save it. 
     Called from: 'download_incoming_video_locally' from file "services.video_service.py"."""
 
-    log_info_msg = "read_vacancy_description_command"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "read_vacancy_description_command"
+    logger.info(f"{log_prefix}: start")
     # ----- IDENTIFY USER and pull required data from records -----
     
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+    logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
     access_token = get_column_value_in_db(
         db_model=Managers,
@@ -946,7 +943,7 @@ async def read_vacancy_description_command(update: Update, context: ContextTypes
 
 
         if vacancy_description is None:
-            logger.error(f"{log_info_msg}: Failed to get vacancy description from HH: {target_vacancy_name}")
+            logger.error(f"{log_prefix}: Failed to get vacancy description from HH: {target_vacancy_name}")
             return
         
         await send_message_to_user(update, context, text=INFO_ABOUT_ANALYZING_VACANCY_TEXT)
@@ -966,13 +963,13 @@ async def read_vacancy_description_command(update: Update, context: ContextTypes
             )
     
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
     
 
@@ -988,20 +985,20 @@ async def define_sourcing_criterias_command(update: Update, context: ContextType
     Triggers: 'define_sourcing_criterias_triggered_by_admin_command'.
     """
 
-    log_info_msg = "define_sourcing_criterias_command"
+    log_prefix = "define_sourcing_criterias_command"
 
     try:
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
+        logger.info(f"{log_prefix}: started. user_id: {bot_user_id}")
         target_vacancy_id = get_column_value_by_field(db_model=Vacancies, search_field_name="manager_id", search_value=bot_user_id, target_field_name="id")
         await define_sourcing_criterias_triggered_by_admin_command(vacancy_id=target_vacancy_id)
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed to execute: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed to execute: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 
@@ -1013,11 +1010,11 @@ async def define_sourcing_criterias_triggered_by_admin_command(vacancy_id: str) 
     Triggers: nothing.
     """
 
-    log_info_msg = "define_sourcing_criterias_triggered_by_admin_command"
+    log_prefix = "define_sourcing_criterias_triggered_by_admin_command"
 
     try:
 
-        logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
+        logger.info(f"{log_prefix}: started. vacancy_id: {vacancy_id}")
 
         # ----- VALIDATE VACANCY IS SELECTED and has description and sourcing criterias exist -----
 
@@ -1053,7 +1050,7 @@ async def define_sourcing_criterias_triggered_by_admin_command(vacancy_id: str) 
         )  
 
     except Exception as e:
-        logger.error(f"Error {log_info_msg}: {e}", exc_info=True)
+        logger.error(f"Error {log_prefix}: {e}", exc_info=True)
         raise 
 
 
@@ -1068,11 +1065,11 @@ async def get_sourcing_criterias_from_ai_and_save_to_db(
     This function is executed through TaskQueue.
     """
 
-    log_info_msg = "get_sourcing_criterias_from_ai_and_save_to_db"
+    log_prefix = "get_sourcing_criterias_from_ai_and_save_to_db"
 
     # ----- IDENTIFY USER and pull required data from records -----
 
-    logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
+    logger.info(f"{log_prefix}: started. vacancy_id: {vacancy_id}")
 
 
     try:
@@ -1103,8 +1100,8 @@ async def send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_c
     instance instead of `update` / `context`.
     """
 
-    log_info_msg = "send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_command"
-    logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
+    log_prefix = "send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_command"
+    logger.info(f"{log_prefix}: started. vacancy_id: {vacancy_id}")
 
     try:
 
@@ -1132,7 +1129,7 @@ async def send_sourcing_criterias_and_questionnaire_to_user_triggered_by_admin_c
         else:
             raise ValueError(f"Missing required application or bot instance for sending message to user {bot_user_id}")
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed to send sourcing criterias result to user: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed to send sourcing criterias result to user: {e}", exc_info=True)
         raise
 
 
@@ -1143,10 +1140,10 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
     command and not directly by the user.
     """
 
-    log_info_msg = "ask_sourcing_criterias_confirmation_via_application"
+    log_prefix = "ask_sourcing_criterias_confirmation_via_application"
 
     try:
-        logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
+        logger.info(f"{log_prefix}: started. user_id: {bot_user_id}")
 
         # ----- CHECK IF USER EXISTS IN DATABASE -----
         if not is_value_in_db(db_model=Managers, field_name="id", value=bot_user_id):
@@ -1174,12 +1171,12 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
         )
 
         logger.info(
-            f"{log_info_msg}: sourcing criterias confirmation question with options asked"
+            f"{log_prefix}: sourcing criterias confirmation question with options asked"
         )
 
     except Exception as e:
         logger.error(
-            f"{log_info_msg}: Failed to ask sourcing criterias confirmation via Application: {e}",
+            f"{log_prefix}: Failed to ask sourcing criterias confirmation via Application: {e}",
             exc_info=True,
         )
         # Notify admin about the error if possible
@@ -1188,13 +1185,13 @@ async def ask_sourcing_criterias_confirmation_via_application(bot_user_id: str, 
                 await send_message_to_admin(
                     application=application,
                     text=(
-                        f"⚠️ Error {log_info_msg}: {e}\n"
+                        f"⚠️ Error {log_prefix}: {e}\n"
                         f"User ID: {bot_user_id if bot_user_id else 'unknown'}"
                     ),
                 )
         except Exception:
             logger.error(
-                f"{log_info_msg}: Failed to send admin notification",
+                f"{log_prefix}: Failed to send admin notification",
                 exc_info=True,
             )
 
@@ -1207,12 +1204,12 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     - If user agrees to sourcing criterias, triggers 'start_sourcing_command'.
     - If user does not agree to sourcing criterias, asks user for feedback"""
 
-    log_info_msg = "handle_answer_sourcing_criterias_confirmation"
+    log_prefix = "handle_answer_sourcing_criterias_confirmation"
 
     # ----- IDENTIFY USER and pull required data from records -----
 
     bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"{log_info_msg}: started. user_id: {bot_user_id}")
+    logger.info(f"{log_prefix}: started. user_id: {bot_user_id}")
     
     # ------- HANDLE ANSWER via generic single-question helper -------
 
@@ -1221,10 +1218,10 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
         context=context,
         callback_prefix="sourcing_criterias_confirmation",
     )
-    logger.debug(f"{log_info_msg}: answer_key: {answer_key}")
+    logger.debug(f"{log_prefix}: answer_key: {answer_key}")
 
     if answer_key is None:
-        logger.warning(f"{log_info_msg}: answer_key is None")
+        logger.warning(f"{log_prefix}: answer_key is None")
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
 
@@ -1238,7 +1235,7 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     # ----- INFORM USER about selected option -----
     if selected_button_text:
         logger.debug(
-            f"{log_info_msg}: selected_button_text resolved from answer_key: {selected_button_text}"
+            f"{log_prefix}: selected_button_text resolved from answer_key: {selected_button_text}"
         )
         await send_message_to_user(
             update,
@@ -1247,7 +1244,7 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
         )
     else:
         logger.warning(
-            f"{log_info_msg}: Unknown answer_key={answer_key} for user_id={bot_user_id}"
+            f"{log_prefix}: Unknown answer_key={answer_key} for user_id={bot_user_id}"
         )
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
@@ -1260,7 +1257,7 @@ async def handle_answer_sourcing_criterias_confirmation(update: Update, context:
     # ----- IF USER CHOSE "YES" download video to local storage -----  
      
     current_time = datetime.now(timezone.utc).isoformat()
-    logger.debug(f"{log_info_msg}: Sourcing criterias confirmation user decision: {sourcing_criterias_confirmation_user_decision} at {current_time}")
+    logger.debug(f"{log_prefix}: Sourcing criterias confirmation user decision: {sourcing_criterias_confirmation_user_decision} at {current_time}")
  
     if sourcing_criterias_confirmation_user_decision == "yes":
 
@@ -1296,10 +1293,10 @@ async def source_negotiations_triggered_by_admin_command(vacancy_id: str) -> Non
     # TAGS: [resume_related]
     """Sources negotiations collection."""
 
-    log_info_msg = "source_negotiations_triggered_by_admin_command"
+    log_prefix = "source_negotiations_triggered_by_admin_command"
 
     try:
-        logger.info(f"{log_info_msg}: started. vacancy_id: {vacancy_id}")
+        logger.info(f"{log_prefix}: started. vacancy_id: {vacancy_id}")
 
         # ----- IDENTIFY USER and pull required data from records -----
         
@@ -1424,8 +1421,8 @@ async def send_message_to_applicant_command(negotiation_id: str) -> None:
     """Sends message to applicant. Triggers 'change_employer_state_command'."""
     
 
-    log_info_msg = "send_message_to_applicant_command"
-    logger.info(f"{log_info_msg}: started. negotiation_id: {negotiation_id}")
+    log_prefix = "send_message_to_applicant_command"
+    logger.info(f"{log_prefix}: started. negotiation_id: {negotiation_id}")
 
     # ----- IDENTIFY USER and pull required data from records -----
     
@@ -1437,11 +1434,11 @@ async def send_message_to_applicant_command(negotiation_id: str) -> None:
     negotiation_message_text = APPLICANT_MESSAGE_TEXT_WITHOUT_LINK + f"{tg_link}"
     try:
         send_negotiation_message(access_token=access_token, negotiation_id=negotiation_id, user_message=negotiation_message_text)
-        logger.info(f"{log_info_msg}: Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
+        logger.info(f"{log_prefix}: Message to applicant for negotiation ID: {negotiation_id} has been successfully sent")
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="link_to_tg_bot_sent", new_value=True)
-        logger.info(f"{log_info_msg}: DB record updated with 'link_to_tg_bot_sent' status as True for negotiation ID: {negotiation_id}")
+        logger.info(f"{log_prefix}: DB record updated with 'link_to_tg_bot_sent' status as True for negotiation ID: {negotiation_id}")
     except Exception as send_err:
-        logger.error(f"{log_info_msg}: Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed to send message for negotiation ID {negotiation_id}: {send_err}", exc_info=True)
         # stop method execution in this case, because no need to update resume_records and negotiations status
         return
 
@@ -1450,8 +1447,8 @@ async def change_employer_state_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
     """Trigger send message to applicant command handler - allows users to send message to applicant."""
 
-    log_info_msg = "change_employer_state_command"
-    logger.info(f"{log_info_msg}: started. negotiation_id: {negotiation_id}")
+    log_prefix = "change_employer_state_command"
+    logger.info(f"{log_prefix}: started. negotiation_id: {negotiation_id}")
     
     # ----- IDENTIFY USER and pull required data from records -----
         
@@ -1462,24 +1459,24 @@ async def change_employer_state_command(negotiation_id: str) -> None:
    # ----- CHANGE EMPLOYER STATE  -----
 
     #await update.message.reply_text(f"Изменяю статус приглашения кандидата на {NEW_EMPLOYER_STATE}...")
-    logger.debug(f"{log_info_msg}: negotiation ID: {negotiation_id} to {EMPLOYER_STATE_CONSIDER}")
+    logger.debug(f"{log_prefix}: negotiation ID: {negotiation_id} to {EMPLOYER_STATE_CONSIDER}")
     try:
         change_negotiation_collection_status_to_consider(
             access_token=access_token,
             negotiation_id=negotiation_id
         )
-        logger.info(f"{log_info_msg}: Collection status of negotiation ID: {negotiation_id} has been successfully changed to {EMPLOYER_STATE_CONSIDER}")
+        logger.info(f"{log_prefix}: Collection status of negotiation ID: {negotiation_id} has been successfully changed to {EMPLOYER_STATE_CONSIDER}")
     except Exception as status_err:
-        logger.error(f"{log_info_msg}: Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed to change collection status for negotiation ID {negotiation_id}: {status_err}", exc_info=True)
 
 
 async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
     """Sources resumes from hh."""
     func_name = "source_resume_triggered_by_admin_command"
-    log_info_msg = f"{func_name}. Arguments {negotiation_id}"
+    log_prefix = f"{func_name}. Arguments {negotiation_id}"
     
-    logger.info(f"{log_info_msg}: started")
+    logger.info(f"{log_prefix}: started")
 
     try:
         
@@ -1494,7 +1491,7 @@ async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
         resume_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_id")
         if resume_id is None: err_msg = f"resume_id"
         if err_msg:
-            raise ValueError(f"{log_info_msg}: {err_msg} not found in database")
+            raise ValueError(f"{log_prefix}: {err_msg} not found in database")
 
         
         # ----- DOWNLOAD RESUMES from HH.ru to "new" resumes -----
@@ -1503,7 +1500,7 @@ async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
         
         resume_data = get_resume_info(access_token=access_token, resume_id=resume_id)
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_json", new_value=resume_data)
-        logger.debug(f"{log_info_msg}: downloaded resume data to database")
+        logger.debug(f"{log_prefix}: downloaded resume data to database")
 
         # ----- ENRICH RESUME_RECORDS file with resume data -----
 
@@ -1533,9 +1530,9 @@ async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
         
         # Log warning if contact data is missing
         if not phone:
-            logger.warning(f"{log_info_msg}: No phone found in resume data")
+            logger.warning(f"{log_prefix}: No phone found in resume data")
         if not email:
-            logger.debug(f"{log_info_msg}: No email found in resume data")
+            logger.debug(f"{log_prefix}: No email found in resume data")
 
 
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_first_name", new_value=first_name)    
@@ -1543,10 +1540,10 @@ async def source_resume_triggered_by_admin_command(negotiation_id: str) -> None:
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_phone", new_value=phone)
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="applicant_email", new_value=email)
 
-        logger.debug(f"{log_info_msg}: updated resume details in database")
+        logger.debug(f"{log_prefix}: updated resume details in database")
  
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         raise
 
 
@@ -1559,9 +1556,9 @@ async def analyze_resume_triggered_by_admin_command(negotiation_id: str) -> None
     """
     
     func_name = "analyze_resume_triggered_by_admin_command"
-    log_info_msg = f"{func_name}. Arguments {negotiation_id}"
+    log_prefix = f"{func_name}. Arguments {negotiation_id}"
     
-    logger.info(f"{log_info_msg}: started")
+    logger.info(f"{log_prefix}: started")
 
     try:
         
@@ -1584,7 +1581,7 @@ async def analyze_resume_triggered_by_admin_command(negotiation_id: str) -> None
         if sourcing_criterias is None: err_msg = f"sourcing_criterias"
 
         if err_msg:
-            raise ValueError(f"{log_info_msg}: {err_msg} not found in database")
+            raise ValueError(f"{log_prefix}: {err_msg} not found in database")
 
         # ----- QUEUE RESUMES for AI ANALYSIS -----
         
@@ -1598,9 +1595,9 @@ async def analyze_resume_triggered_by_admin_command(negotiation_id: str) -> None
             resume_json,
             task_id=f"resume_analysis_{negotiation_id}"
         )
-        logger.info(f"{log_info_msg}: Added resume to analysis queue.")
+        logger.info(f"{log_prefix}: Added resume to analysis queue.")
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed to queue resume analysis: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed to queue resume analysis: {e}", exc_info=True)
         raise
    
 
@@ -1618,9 +1615,9 @@ async def resume_analysis_from_ai_to_user_sort_resume(
     """
 
     func_name = "resume_analysis_from_ai_to_user_sort_resume"
-    log_info_msg = f"{func_name}. Arguments: {negotiation_id}"
+    log_prefix = f"{func_name}. Arguments: {negotiation_id}"
     
-    logger.info(f"{log_info_msg}: started")
+    logger.info(f"{log_prefix}: started")
 
     try:
         # Call AI analyzer
@@ -1633,11 +1630,11 @@ async def resume_analysis_from_ai_to_user_sort_resume(
         
         # Update resume records with AI analysis results
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_analysis", new_value=ai_analysis_result)
-        logger.debug(f"{log_info_msg}: updated resume ai analysis in database")
+        logger.debug(f"{log_prefix}: updated resume ai analysis in database")
 
         resume_ai_score = str(ai_analysis_result.get("final_score", 0))
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_score", new_value=resume_ai_score)
-        logger.debug(f"{log_info_msg}: updated resume ai score in database")
+        logger.debug(f"{log_prefix}: updated resume ai score in database")
 
         # Sort resume based on final score
         resume_ai_score = int(ai_analysis_result.get("final_score", 0))
@@ -1648,57 +1645,68 @@ async def resume_analysis_from_ai_to_user_sort_resume(
 
         resume_ai_score_str = str(resume_ai_score)
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_sorting_status", new_value=new_status)
-        logger.debug(f"{log_info_msg}: updated resume sorting status in database")
+        logger.debug(f"{log_prefix}: updated resume sorting status in database")
         update_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=negotiation_id, target_field_name="resume_ai_score", new_value=resume_ai_score_str)
-        logger.debug(f"{log_info_msg}: updated resume ai score in database")
+        logger.debug(f"{log_prefix}: updated resume ai score in database")
 
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         raise
 
 
-async def send_recommendation_text_to_specified_user(whom_to_send: str, negotiation_id: str) -> None:
+async def send_recommendation_text_to_specified_user(whom_to_send: str, negotiation_id: str, application: Application) -> None:
     
     func_name = "send_recommendation_text_to_specified_user"
-    log_info_msg = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
+    logger.info(f"{log_prefix}: start")
 
     try:
 
         if not is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
-            raise ValueError(f"{log_info_msg}: negotiation_id not found in database")
+            raise ValueError(f"{log_prefix}: negotiation_id not found in database")
 
         recommendation_text = get_resume_recommendation_text_from_resume_records(negotiation_id=negotiation_id)
         if recommendation_text is None:
-            raise ValueError(f"{log_info_msg}: recommendation_text not found in database")
+            raise ValueError(f"{log_prefix}: recommendation_text not found in database")
 
-        await send_message_to_user(chat_id=int(whom_to_send), text=recommendation_text, parse_mode="HTML")
-        logger.info(f"{log_info_msg}: recommendation text has been successfully sent to user {whom_to_send}")
+        if not application or not application.bot:
+            raise ValueError(f"{log_prefix}: application or bot instance not provided")
+
+        await application.bot.send_message(
+            chat_id=int(whom_to_send),
+            text=recommendation_text,
+            parse_mode=ParseMode.HTML,
+        )
+        logger.info(f"{log_prefix}: recommendation text has been successfully sent to user {whom_to_send}")
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         raise
 
 
 async def send_recommendation_video_to_specified_user_without_questionnaire(whom_to_send: str, negotiation_id: str, application: Application) -> None:
 
     func_name = "send_recommendation_video_to_specified_user"
-    log_info_msg = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
+    logger.info(f"{log_prefix}: start")
 
     try:
         if not is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
-            raise ValueError(f"{log_info_msg}: negotiation_id not found in database")
+            raise ValueError(f"{log_prefix}: negotiation_id not found in database")
 
-        video_path = get_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="video_path")
+        video_path = get_column_value_in_db(
+            db_model=Negotiations,
+            record_id=negotiation_id,
+            field_name="video_path",
+        )
         if not video_path:
-            raise ValueError(f"{log_info_msg}: video_path not found in database for negotiation {negotiation_id}")
+            raise ValueError(f"{log_prefix}: video_path not found in database for negotiation {negotiation_id}")
 
         video_path_object = Path(video_path)
         if not video_path_object.exists():
-            raise FileNotFoundError(f"{log_info_msg}: video file does not exist at path {video_path_object}")
+            raise FileNotFoundError(f"{log_prefix}: video file does not exist at path {video_path_object}")
 
         if not application or not application.bot:
-            raise ValueError(f"{log_info_msg}: application or bot instance not provided")
+            raise ValueError(f"{log_prefix}: application or bot instance not provided")
 
         try:
             with open(video_path_object, "rb") as video_file:
@@ -1706,35 +1714,39 @@ async def send_recommendation_video_to_specified_user_without_questionnaire(whom
                     chat_id=int(whom_to_send),
                     video=InputFile(video_file, filename=video_path_object.name),
                 )
-            logger.info(f"{log_info_msg}: recommendation video has been successfully sent to user {whom_to_send}")
+            logger.info(f"{log_prefix}: recommendation video has been successfully sent to user {whom_to_send}")
         except Exception as e:
-            logger.error(f"{log_info_msg}: Failed to send video to user {whom_to_send}: {e}", exc_info=True)
+            logger.error(f"{log_prefix}: Failed to send video to user {whom_to_send}: {e}", exc_info=True)
             raise
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         raise
     
 
 async def send_recommendation_video_to_specified_user_with_questionnaire(whom_to_send: str, negotiation_id: str, application: Application) -> None:
 
     func_name = "send_recommendation_video_to_specified_user"
-    log_info_msg = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = f"{func_name}. Arguments: {whom_to_send}, {negotiation_id}"
+    logger.info(f"{log_prefix}: start")
 
     try:
         if not is_value_in_db(db_model=Negotiations, field_name="id", value=negotiation_id):
-            raise ValueError(f"{log_info_msg}: negotiation_id not found in database")
+            raise ValueError(f"{log_prefix}: negotiation_id not found in database")
 
-        video_path = get_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="video_path")
+        video_path = get_column_value_in_db(
+            db_model=Negotiations,
+            record_id=negotiation_id,
+            field_name="video_path",
+        )
         if not video_path:
-            raise ValueError(f"{log_info_msg}: video_path not found in database for negotiation {negotiation_id}")
+            raise ValueError(f"{log_prefix}: video_path not found in database for negotiation {negotiation_id}")
 
         video_path_object = Path(video_path)
         if not video_path_object.exists():
-            raise FileNotFoundError(f"{log_info_msg}: video file does not exist at path {video_path_object}")
+            raise FileNotFoundError(f"{log_prefix}: video file does not exist at path {video_path_object}")
 
         if not application or not application.bot:
-            raise ValueError(f"{log_info_msg}: application or bot instance not provided")
+            raise ValueError(f"{log_prefix}: application or bot instance not provided")
 
         try:
             # Send video
@@ -1743,7 +1755,11 @@ async def send_recommendation_video_to_specified_user_with_questionnaire(whom_to
                     chat_id=int(whom_to_send),
                     video=InputFile(video_file, filename=video_path_object.name),
                 )
-            logger.info(f"{log_info_msg}: recommendation video has been successfully sent to user {whom_to_send}")
+            logger.info(f"{log_prefix}: recommendation video has been successfully sent to user {whom_to_send}")
+
+            current_time = datetime.now(timezone.utc).isoformat()
+            update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"resume_recommended": True, "resume_recommended_time": current_time})
+            logger.debug(f"{log_prefix}: updated resume recommended status and time in database")
 
             # Ask a question with actions using generic questionnaire helper
             # callback_data format will be:
@@ -1760,13 +1776,13 @@ async def send_recommendation_video_to_specified_user_with_questionnaire(whom_to
                 options=options,
                 callback_prefix=INVITE_TO_INTERVIEW_CALLBACK_PREFIX,
             )
-            logger.info(f"{log_info_msg}: action question sent to user {whom_to_send}")
+            logger.info(f"{log_prefix}: action question sent to user {whom_to_send}")
 
         except Exception as e:
-            logger.error(f"{log_info_msg}: Failed to send video or question to user {whom_to_send}: {e}", exc_info=True)
+            logger.error(f"{log_prefix}: Failed to send video or question to user {whom_to_send}: {e}", exc_info=True)
             raise
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         raise
 
 
@@ -1776,8 +1792,8 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
     Sends notification to admin if fails"""
     
 
-    log_info_msg = "handle_answer_invite_to_interview_button"
-    logger.info(f"{log_info_msg}: start")
+    log_prefix = "handle_answer_invite_to_interview_button"
+    logger.info(f"{log_prefix}: start")
 
     try:
         if not update.callback_query:
@@ -1785,7 +1801,7 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
 
         # ----- IDENTIFY USER and pull required data from callback -----
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-        logger.info(f"{log_info_msg}: user_id fetched {bot_user_id}")
+        logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
         # Use generic single-question helper from questionnaire_service
         answer_key = await single_question_callback_handler(
@@ -1793,7 +1809,7 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
             context=context,
             callback_prefix=INVITE_TO_INTERVIEW_CALLBACK_PREFIX,
         )
-        logger.debug(f"{log_info_msg}: answer_key: {answer_key}")
+        logger.debug(f"{log_prefix}: answer_key: {answer_key}")
 
         if not answer_key:
             raise ValueError("Empty answer_key for invite to interview question")
@@ -1803,28 +1819,38 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
         # answer_key format: "<action>:<negotiation_id>"
         try:
             action, negotiation_id = answer_key.split(":", 1)
+            logger.debug(f"{log_prefix}: action: {action}, negotiation_id: {negotiation_id}")
         except ValueError:
             raise ValueError(f"Invalid answer_key format for invite to interview: {answer_key}")
 
-        vacancy_id = get_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="vacancy_id")
+        vacancy_id = get_column_value_in_db(
+            db_model=Negotiations,
+            record_id=negotiation_id,
+            field_name="vacancy_id",
+        )
         if not vacancy_id:
-            raise ValueError(f"{log_info_msg}: vacancy_id not found in database for negotiation {negotiation_id}")
-
-        vacancy_name = get_column_value_by_field(db_model=Vacancies, record_id=vacancy_id, field_name="vacancy_name")
+            raise ValueError(f"{log_prefix}: vacancy_id not found in database for negotiation {negotiation_id}")
+        vacancy_name = get_column_value_in_db(
+            db_model=Vacancies,
+            record_id=vacancy_id,
+            field_name="name",
+        )
         if not vacancy_name:
-            raise ValueError(f"{log_info_msg}: vacancy_name not found in database for vacancy {vacancy_id}")
-        
-        manager_id = get_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="manager_id")
+            raise ValueError(f"{log_prefix}: vacancy_name not found in database for vacancy {vacancy_id}")
+        manager_id = get_column_value_in_db(
+            db_model=Vacancies,
+            record_id=vacancy_id,
+            field_name="manager_id",
+        )
         if not manager_id:
-            raise ValueError(f"{log_info_msg}: manager_id not found in database for negotiation {negotiation_id}")
+            raise ValueError(f"{log_prefix}: manager_id not found in database for negotiation {negotiation_id}")
 
         current_time = datetime.now(timezone.utc).isoformat()
-        is_accepted = None
 
         # Build admin message based on user action
         if action == "invite":
-
-            is_accepted = True
+            
+            update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"resume_accepted": True, "resume_decision_time": current_time})
 
             user_msg = f"Отлично, мы вам и кандидату, чтобы договоритьсяо времени интервью."
 
@@ -1836,7 +1862,8 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
 
         elif action == "reject":
 
-            is_accepted = False
+            update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"resume_accepted": False, "resume_decision_time": current_time})
+            logger.debug(f"{log_prefix}: updated resume recommended status and time in database")
 
             user_msg = f"Хорошо, приглашать этого кандидата не будем.\nРасскажите, почему вы не согласны с критериями отбора кандидатов.\n\nПришлите аудио-запись прямо в этот чат, пожалуйста.\n\nЯ учту ваши пожелания и подправлю критерии отбора кандидатов."
 
@@ -1853,25 +1880,21 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
 
             raise ValueError(f"Unknown action '{action}' in invite to interview flow")
 
-        if is_accepted is not None:
-            update_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="resume_accepted", new_value=is_accepted)
-            update_column_value_by_field(db_model=Negotiations, record_id=negotiation_id, field_name="resume_decision_time", new_value=current_time)
-
         await send_message_to_user(update, context, text=user_msg)
         # ----- SEND NOTIFICATION TO ADMIN & UPDATE STATE -----
         if context.application:
             await send_message_to_admin(application=context.application, text=admin_message)
         else:
-            raise ValueError(f"{log_info_msg}: application instance not provided")
+            raise ValueError(f"{log_prefix}: application instance not provided")
 
     except Exception as e:
-        logger.error(f"{log_info_msg}: Failed: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         # Send notification to admin about the error
         if context.application:
             await send_message_to_admin(
                 application=context.application,
-                text=f"⚠️ Error {log_info_msg}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
+                text=f"⚠️ Error {log_prefix}: {e}\nUser ID: {bot_user_id if 'bot_user_id' in locals() else 'unknown'}"
             )
 
 

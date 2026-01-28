@@ -27,7 +27,10 @@ from shared_services.db_service import (
     is_boolean_field_true_in_db,
     get_column_value_in_db,
 )
-from shared_services.db_service import get_column_value_by_field
+from shared_services.db_service import (
+    get_column_value_by_field,
+    update_record_in_db,
+)
 
 
 from database import Base, Managers, Vacancies, Negotiations
@@ -192,19 +195,6 @@ def get_expires_at_from_callback_endpoint_resp(endpoint_response: dict) -> Optio
         return endpoint_response.get("expires_at", None)
     else:
         logger.debug(f"'endpoint_response' is not a dictionary: {endpoint_response}")
-        return None
-
-def get_reply_from_update_object(update: Update):
-    """ Get user reply to from the update object if user did one of below. TAGS: [get_data].
-    1. sent message (text, photo, video, etc.) - update.message OR
-    2. clicked button - update.callback_query.message
-    If none of the above, return None
-    """
-    if update.message:
-        return update.message.reply_text
-    elif update.callback_query and update.callback_query.message:
-        return update.callback_query.message.reply_text
-    else:
         return None
 
 # ****** METHODS with TAGS: [format_data] ******
@@ -443,46 +433,6 @@ def get_resume_records_file_path(bot_user_id: str, vacancy_id: str) -> Path:
         logger.debug(f"'{RESUME_RECORDS_FILENAME}' created in {resume_data_dir}")
         return resume_records_file_path
 
-def get_list_of_resume_ids_for_recommendation(bot_user_id: str, vacancy_id: str) -> list[str]:
-    # TAGS: [get_data]
-    """Get list of resume IDs for recommendation.
-    Criterias:
-    1. Resume is passed
-    2. Resume has video
-    3. Resume is not recommended yet
-    """
-    resume_records_file_path = get_resume_records_file_path(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-    with open(resume_records_file_path, "r", encoding="utf-8") as f:
-        resume_records = json.load(f)
-    logger.debug(f"get_list_of_resume_ids_for_recommendation: Resume records path: {resume_records}")
-
-    recommendation_list = []
-    for resume_id, resume_record_data in resume_records.items():
-        # Check if resume is passed and not recommended yet without video
-        if resume_record_data["resume_sorting_status"] == "passed":
-            logger.debug(f"get_list_of_resume_ids_for_recommendation: Resume {resume_id} is passed")
-            if resume_record_data.get("resume_recommended", "no") == "no" or resume_record_data.get("resume_recommended", "") == "":
-                logger.debug(f"get_list_of_resume_ids_for_recommendation: Resume {resume_id} is not recommended yet")
-                recommendation_list.append(resume_id)
-            """
-            # Collect resume id for passed resumes WITH video
-            if resume_record_data["resume_video_received"] == "yes":
-                if resume_record_data.get("resume_recommended", "no") == "no":
-                    recommendation_list.append(resume_id)
-            """
-        else:
-            logger.debug(f"get_list_of_resume_ids_for_recommendation: Resume {resume_id} is not passed")
-    logger.debug(f"get_list_of_resume_ids_for_recommendation: List of resume IDs for recommendation: {recommendation_list}")
-    return recommendation_list
-
-
-def get_negotiation_id_from_resume_record(bot_user_id: str, vacancy_id: str, resume_record_id: str) -> Optional[str]:
-    # TAGS: [get_data]
-    """Get negotiation id from resume record."""
-    resume_records_path = get_resume_records_file_path(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-    with open(resume_records_path, "r", encoding="utf-8") as f:
-        resume_records = json.load(f)
-    return resume_records[resume_record_id]["negotiation_id"]
 
 
 def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> str:
@@ -568,42 +518,6 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
     return recommendation_text
 
 
-
-def get_path_to_video_from_applicant_from_resume_records(bot_user_id: str, vacancy_id: str, resume_record_id: str) -> Path:
-    """Get path to video from applicant from resume records. TAGS: [get_data]"""
-    resume_records_file_path = get_resume_records_file_path(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-    # Read existing data
-    with open(resume_records_file_path, "r", encoding="utf-8") as f:
-        resume_records = json.load(f)
-    video_path_value = resume_records[resume_record_id].get("resume_video_path")
-    if video_path_value is None:
-        raise ValueError(f"'resume_video_path' not found for 'resume_record_id': {resume_record_id}")
-    return Path(video_path_value)
-
-'''
-def get_employer_id_from_records(record_id: str) -> Optional[str]:
-    """Get employer id from users records. TAGS: [get_data]"""
-    users_records_file_path = get_users_records_file_path()
-    with open(users_records_file_path, "r", encoding="utf-8") as f:
-        records = json.load(f)
-    if record_id in records:
-        employer_id = records[record_id]["data_from_hh"]["employer"]["id"]
-        logger.debug(f"'employer_id': {employer_id} found for 'bot_user_id': {record_id} in {users_records_file_path}")
-        return employer_id
-    else:
-        logger.debug(f"'record_id': {record_id} not found in {users_records_file_path}")
-        return None
-
-
-def get_list_of_users_from_records() -> list[str]:
-    # TAGS: [get_data]
-    """Get list of users from users records."""
-    users_records_file_path = get_users_records_file_path()
-    with open(users_records_file_path, "r", encoding="utf-8") as f:
-        records = json.load(f)
-    return list(records.keys())
-
-
 # ****** METHODS with TAGS: [update_data] ******
 '''
 
@@ -643,5 +557,5 @@ def update_resume_record_with_top_level_key(bot_user_id: str, vacancy_id: str, r
             raise ValueError(f"Resume record {resume_record_id} does not exist in the file {resume_records_path}")
     except Exception as e:
         raise ValueError(f"Error updating resume record with top level key: {e}")
-'''
+
 

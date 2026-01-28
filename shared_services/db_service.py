@@ -56,13 +56,17 @@ def create_new_record_in_db(
                         (e.g., {"manager_id": bot_user_id} for Vacancies where manager_id
                         is NOT NULL)
     """
+
+    log_prefix = f"create_new_record_in_db"
+
+
     id_column = db_model.__table__.columns.get("id")
     if id_column is None:
-        logger.error(f"{db_model.__name__} does not have id column")
+        logger.error(f"{log_prefix}:{db_model.__name__} does not have id column")
         return
 
     if not isinstance(id_column.type, String):
-        logger.error(f"{db_model.__name__}.id is not a String column")
+        logger.error(f"{log_prefix}:{db_model.__name__}.id is not a String column")
         return
 
     record_id_value: Any = record_id
@@ -70,7 +74,7 @@ def create_new_record_in_db(
     db = SessionLocal()
     try:
         if db.query(db_model).filter(id_column == record_id_value).first():
-            logger.debug(f"{db_model.__name__} {record_id} уже существует.")
+            logger.debug(f"{log_prefix}:{db_model.__name__}.{record_id} already exists.")
             return
 
         # create new record in database with minimum available attributes,
@@ -89,10 +93,10 @@ def create_new_record_in_db(
         new_record = db_model(**record_kwargs)
         db.add(new_record)
         db.commit()
-        logger.debug(f"{db_model.__name__} {record_id} добавлен в БД")
+        logger.debug(f"{log_prefix}:{db_model.__name__}.{record_id} added to database")
     except Exception as e:
         db.rollback()
-        logger.error(f"Ошибка при создании пользователя {record_id}: {e}")
+        logger.error(f"{log_prefix}:{db_model.__name__}.{record_id} error: {e}")
         raise
     finally:
         db.close()
@@ -103,27 +107,27 @@ def create_new_record_in_db(
 
 def is_boolean_field_true_in_db(db_model: Type[Base], record_id: str, field_name: str) -> bool:
     
-    method_name_for_logging = f"is_boolean_field_true_in_db: {db_model.__name__}.{field_name}"
+    log_prefix = f"is_boolean_field_true_in_db: {db_model.__name__}.{field_name}"
 
     # ---- Validate the model/column before querying ----
 
     # fetches the column object by name
     column = db_model.__table__.columns.get(field_name)
     if column is None:
-        logger.warning(f"{method_name_for_logging} does not have column {field_name}")
+        logger.warning(f"{log_prefix} does not have column {field_name}")
         return False
     # ensures the column is a Boolean
     if not isinstance(column.type, Boolean):
-        logger.warning(f"{method_name_for_logging} is not a Boolean column")
+        logger.warning(f"{log_prefix} is not a Boolean column")
         return False
     # ensures the model has an id column
     id_column = db_model.__table__.columns.get("id")
     if id_column is None:
-        logger.warning(f"{method_name_for_logging} does not have id column")
+        logger.warning(f"{log_prefix} does not have id column")
         return False
 
     if not isinstance(id_column.type, String):
-        logger.error(f"{method_name_for_logging}.id is not a String column")
+        logger.error(f"{log_prefix}.id is not a String column")
         return False
 
     with SessionLocal() as db:
@@ -132,7 +136,7 @@ def is_boolean_field_true_in_db(db_model: Type[Base], record_id: str, field_name
         ).scalar_one_or_none()
 
     if value is None:
-        logger.debug(f"{method_name_for_logging} {record_id} not found in database")
+        logger.debug(f"{log_prefix} {record_id} not found in database")
         return False
 
     return value
@@ -140,11 +144,11 @@ def is_boolean_field_true_in_db(db_model: Type[Base], record_id: str, field_name
 
 def is_value_in_db(db_model: Type[Base], field_name: str, value: Any) -> bool:
     
-    method_name_for_logging = f"is_value_in_db: {db_model.__name__}.{field_name}"
+    log_prefix = f"is_value_in_db: {db_model.__name__}.{field_name}"
 
     column = db_model.__table__.columns.get(field_name)
     if column is None:
-        logger.warning(f"{method_name_for_logging} does not have column {field_name}")
+        logger.warning(f"{log_prefix} does not have column {field_name}")
         return False
 
     with SessionLocal() as db:
@@ -160,20 +164,20 @@ def is_value_in_db(db_model: Type[Base], field_name: str, value: Any) -> bool:
 
 def get_column_value_in_db(db_model: Type[Base], record_id: str, field_name: str) -> Any:
 
-    method_name_for_logging = f"get_column_value_in_db: {db_model.__name__}.{field_name}"
+    log_prefix = f"get_column_value_in_db: {db_model.__name__}.{field_name}"
 
     column = db_model.__table__.columns.get(field_name)
     if column is None:
-        logger.warning(f"{method_name_for_logging} does not have column {field_name}")
+        logger.warning(f"{log_prefix} does not have column")
         return None
 
     id_column = db_model.__table__.columns.get("id")
     if id_column is None:
-        logger.warning(f"{method_name_for_logging} does not have id column")
+        logger.warning(f"{log_prefix} does not have id column")
         return None
 
     if not isinstance(id_column.type, String):
-        logger.error(f"{method_name_for_logging}.id is not a String column")
+        logger.error(f"{log_prefix}.id is not a String column")
         return None
 
     with SessionLocal() as db:
@@ -194,16 +198,16 @@ def get_column_value_by_field(db_model: Type[Base], search_field_name: str, sear
     Returns:
         The value of the target field, or None if not found
     """
-    method_name_for_logging = f"get_column_value_by_field: {db_model.__name__}.{search_field_name}={search_value}.{target_field_name}"
+    log_prefix = f"get_column_value_by_field: {db_model.__name__}.{search_field_name}={search_value}.{target_field_name}"
     
     search_column = db_model.__table__.columns.get(search_field_name)
     if search_column is None:
-        logger.warning(f"{method_name_for_logging} does not have search column {search_field_name}")
+        logger.warning(f"{log_prefix} does not have search column {search_field_name}")
         return None
     
     target_column = db_model.__table__.columns.get(target_field_name)
     if target_column is None:
-        logger.warning(f"{method_name_for_logging} does not have target column {target_field_name}")
+        logger.warning(f"{log_prefix} does not have target column {target_field_name}")
         return None
     
     with SessionLocal() as db:
@@ -233,30 +237,30 @@ def update_column_value_by_field(
     Returns:
         True if update was successful, False otherwise
     """
-    method_name_for_logging = f"update_column_value_by_field: {db_model.__name__}.{search_field_name}={search_value}.{target_field_name}"
+    log_prefix = f"update_column_value_by_field: {db_model.__name__}.{search_field_name}={search_value}.{target_field_name}"
     
     search_column = db_model.__table__.columns.get(search_field_name)
     if search_column is None:
-        logger.warning(f"{method_name_for_logging} does not have search column {search_field_name}")
+        logger.warning(f"{log_prefix} does not have search column {search_field_name}")
         return False
     
     target_column = db_model.__table__.columns.get(target_field_name)
     if target_column is None:
-        logger.warning(f"{method_name_for_logging} does not have target column {target_field_name}")
+        logger.warning(f"{log_prefix} does not have target column {target_field_name}")
         return False
     
     db = SessionLocal()
     try:
         result = db.query(db_model).filter(search_column == search_value).update({target_field_name: new_value})
         if result == 0:
-            logger.debug(f"{method_name_for_logging} no records found to update")
+            logger.debug(f"{log_prefix} no records found to update")
             return False
         db.commit()
-        logger.debug(f"{method_name_for_logging} successfully updated {result} record(s)")
+        logger.debug(f"{log_prefix} successfully updated {result} record(s)")
         return True
     except Exception as e:
         db.rollback()
-        logger.error(f"{method_name_for_logging} error: {e}")
+        logger.error(f"{log_prefix} error: {e}")
         raise
     finally:
         db.close()
@@ -266,29 +270,29 @@ def update_column_value_by_field(
 
 def update_record_in_db(db_model: Type[Base], record_id: str, updates: Dict[str, Any]) -> None:
 
-    method_name_for_logging = f"update_record_in_db: {db_model.__name__}.{record_id}"
+    log_prefix = f"update_record_in_db: {db_model.__name__}.{record_id}"
 
     if not updates:
-        logger.warning(f"{method_name_for_logging} no updates provided")
+        logger.warning(f"{log_prefix} no updates provided")
         return
 
     id_column = db_model.__table__.columns.get("id")
     if id_column is None:
-        logger.error(f"{method_name_for_logging} does not have id column")
+        logger.error(f"{log_prefix} does not have id column")
         return
     if not isinstance(id_column.type, String):
-        logger.error(f"{method_name_for_logging}.id is not a String column")
+        logger.error(f"{log_prefix}.id is not a String column")
         return
 
     db = SessionLocal()
     try:
         result = db.query(db_model).filter(id_column == record_id).update(updates)
         if result == 0:
-            logger.debug(f"{method_name_for_logging} not found in database")
+            logger.debug(f"{log_prefix} not found in database")
         db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"{method_name_for_logging} error: {e}")
+        logger.error(f"{log_prefix} error: {e}")
         raise
     finally:
         db.close()
@@ -296,30 +300,30 @@ def update_record_in_db(db_model: Type[Base], record_id: str, updates: Dict[str,
 
 def clear_column_value_in_db(db_model: Type[Base], record_id: str, field_name: str) -> None:
     
-    method_name_for_logging = f"clear_column_value_in_db: {db_model.__name__}.{record_id}.{field_name}"
+    log_prefix = f"clear_column_value_in_db: {db_model.__name__}.{record_id}.{field_name}"
 
     column = db_model.__table__.columns.get(field_name)
     if column is None:
-        logger.warning(f"{method_name_for_logging} does not have column {field_name}")
+        logger.warning(f"{log_prefix} does not have column {field_name}")
         return
 
     id_column = db_model.__table__.columns.get("id")
     if id_column is None:
-        logger.error(f"{method_name_for_logging} does not have id column")
+        logger.error(f"{log_prefix} does not have id column")
         return
     if not isinstance(id_column.type, String):
-        logger.error(f"{method_name_for_logging}.id is not a String column")
+        logger.error(f"{log_prefix}.id is not a String column")
         return
 
     db = SessionLocal()
     try:
         result = db.query(db_model).filter(id_column == record_id).update({field_name: None})
         if result == 0:
-            logger.debug(f"{method_name_for_logging} not found in database")
+            logger.debug(f"{log_prefix} not found in database")
         db.commit()
     except Exception as e:
         db.rollback()
-        logger.error(f"{method_name_for_logging} error: {e}")
+        logger.error(f"{log_prefix} error: {e}")
         raise
     finally:
         db.close()
