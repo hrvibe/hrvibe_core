@@ -222,23 +222,24 @@ def is_vacany_data_enough_for_resume_analysis(user_id: str) -> bool:
 
 # ****** METHODS with TAGS: [persistent_keyboard] ******
 
-'''
+
 def get_persistent_keyboard_messages(bot_user_id: str) -> list[tuple[int, int]]:
     # TAGS: [persistent_keyboard]
     """Get persistent keyboard message IDs for a user. Returns list of (chat_id, message_id) tuples."""
-    users_records_file_path = get_users_records_file_path()
     try:
-        with open(users_records_file_path, "r", encoding="utf-8") as f:
-            records = json.load(f)
-        if bot_user_id in records:
-            keyboard_messages = records[bot_user_id].get("messages_with_keyboards", [])
+        if is_value_in_db(db_model=Managers, field_name="id", value=bot_user_id):
+            keyboard_messages = get_column_value_in_db(
+                db_model=Managers,
+                record_id=bot_user_id,
+                field_name="messages_with_keyboards",
+            )
             # Convert list of lists to list of tuples
             return [tuple(msg) for msg in keyboard_messages if isinstance(msg, (list, tuple)) and len(msg) == 2]
         return []
     except Exception as e:
         logger.error(f"Error reading keyboard messages for {bot_user_id}: {e}")
         return []
-'''
+
 
 def get_persistent_keyboard_messages_from_db(bot_user_id: str) -> list[tuple[int, int]]:
     # TAGS: [persistent_keyboard]
@@ -257,7 +258,7 @@ def get_persistent_keyboard_messages_from_db(bot_user_id: str) -> list[tuple[int
         logger.error(f"Error reading keyboard messages for {bot_user_id}: {e}")
         return []
 
-'''
+
 def add_persistent_keyboard_message(bot_user_id: str, chat_id: int, message_id: int) -> None:
     # TAGS: [persistent_keyboard]
     """Add a keyboard message ID to persistent storage."""
@@ -283,7 +284,7 @@ def add_persistent_keyboard_message(bot_user_id: str, chat_id: int, message_id: 
             logger.debug(f"Added keyboard message {message_id} to persistent storage for user {bot_user_id_str}")
     except Exception as e:
         logger.error(f"Error adding keyboard message to persistent storage: {e}")
-'''
+
 
 def add_persistent_keyboard_message_in_db(bot_user_id: str, chat_id: int, message_id: int) -> None:
     # TAGS: [persistent_keyboard]
@@ -315,29 +316,24 @@ def add_persistent_keyboard_message_in_db(bot_user_id: str, chat_id: int, messag
     except Exception as e:
         logger.error(f"{method_name}: error adding keyboard message: {e}")
 
-'''
+
 def remove_persistent_keyboard_message(bot_user_id: str, chat_id: int, message_id: int) -> None:
     # TAGS: [persistent_keyboard]
-    """Remove a keyboard message ID from persistent storage."""
-    users_records_file_path = get_users_records_file_path()
+    """Remove a keyboard message ID from persistent storage (DB-backed)."""
+    method_name = "remove_persistent_keyboard_message"
     try:
-        with open(users_records_file_path, "r", encoding="utf-8") as f:
-            records = json.load(f)
-        
-        bot_user_id_str = str(bot_user_id)
-        if bot_user_id_str not in records:
-            return
-        
-        if "messages_with_keyboards" in records[bot_user_id_str]:
-            keyboard_messages = records[bot_user_id_str]["messages_with_keyboards"]
-            records[bot_user_id_str]["messages_with_keyboards"] = [
-                msg for msg in keyboard_messages if not (msg[0] == chat_id and msg[1] == message_id)
-            ]
-            users_records_file_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
-            logger.debug(f"Removed keyboard message {message_id} from persistent storage for user {bot_user_id_str}")
+        # Delegate to DB-based implementation to keep a single source of truth
+        remove_persistent_keyboard_message_from_db(
+            bot_user_id=bot_user_id,
+            chat_id=chat_id,
+            message_id=message_id,
+        )
+        logger.debug(
+            f"{method_name}: removed keyboard message {message_id} from persistent storage for user {bot_user_id}"
+        )
     except Exception as e:
-        logger.error(f"Error removing keyboard message from persistent storage: {e}")
-'''
+        logger.error(f"{method_name}: error removing keyboard message from persistent storage: {e}")
+
 
 def remove_persistent_keyboard_message_from_db(bot_user_id: str, chat_id: int, message_id: int) -> None:
     # TAGS: [persistent_keyboard]
@@ -366,74 +362,40 @@ def remove_persistent_keyboard_message_from_db(bot_user_id: str, chat_id: int, m
     except Exception as e:
         logger.error(f"Error removing keyboard message from persistent storage: {e}")
 
-'''
+
 def clear_all_persistent_keyboard_messages(bot_user_id: str) -> None:
     # TAGS: [persistent_keyboard]
-    """Clear all persistent keyboard messages for a user."""
-    users_records_file_path = get_users_records_file_path()
+    """Clear all persistent keyboard messages for a user (DB-backed)."""
+    method_name = "clear_all_persistent_keyboard_messages"
     try:
-        with open(users_records_file_path, "r", encoding="utf-8") as f:
-            records = json.load(f)
-        
-        bot_user_id_str = str(bot_user_id)
-        if bot_user_id_str in records:
-            records[bot_user_id_str]["messages_with_keyboards"] = []
-            users_records_file_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
-            logger.debug(f"Cleared all persistent keyboard messages for user {bot_user_id_str}")
+        # Delegate to DB-based implementation
+        clear_all_persistent_keyboard_messages_from_db(bot_user_id=bot_user_id)
+        logger.debug(
+            f"{method_name}: cleared all persistent keyboard messages for user {bot_user_id}"
+        )
     except Exception as e:
-        logger.error(f"Error clearing persistent keyboard messages: {e}")    
-'''
+        logger.error(f"{method_name}: error clearing persistent keyboard messages: {e}")
+
 
 def clear_all_persistent_keyboard_messages_from_db(bot_user_id: str) -> None:
     # TAGS: [persistent_keyboard]
-    """Clear all persistent keyboard messages for a user."""
+    """Clear all persistent keyboard messages for a user (DB)."""
+    method_name = "clear_all_persistent_keyboard_messages_from_db"
     try:
         if not is_value_in_db(db_model=Managers, field_name="id", value=bot_user_id):
             return
-        clear_column_value_in_db(
+        # Explicitly set messages_with_keyboards to empty list to avoid NULL vs [] ambiguity
+        update_record_in_db(
             db_model=Managers,
             record_id=bot_user_id,
-            field_name="messages_with_keyboards",
+            updates={"messages_with_keyboards": []},
         )
-        logger.debug(f"Cleared all persistent keyboard messages for user {bot_user_id}")
+        logger.debug(f"{method_name}: Cleared all persistent keyboard messages for user {bot_user_id}")
     except Exception as e:
-        logger.error(f"Error clearing persistent keyboard messages: {e}")    
+        logger.error(f"{method_name}: Error clearing persistent keyboard messages: {e}")  
 
 
-# ****** METHODS with TAGS: [format_data] ******
-
-
-def create_resume_records_file(bot_user_id: str, vacancy_id: str) -> None:
-    # TAGS: [create_data],[file_path]
-    """Create a file with resume data records if it doesn't exist."""
-    resume_data_dir = ""
-    if resume_data_dir is None:
-        raise ValueError(f"Resume directory not found for user {bot_user_id} and vacancy {vacancy_id}. Vacancy directory may not exist or resumes directory may not be created.")
-    resume_records_file_path = resume_data_dir / f"{RESUME_RECORDS_FILENAME}.json"
-    if not resume_records_file_path.exists():
-        resume_records_file_path.write_text(json.dumps({}), encoding="utf-8")
-        logger.debug(f"{resume_records_file_path} created.")
-    else:
-        logger.debug(f"{resume_records_file_path} already exists.")
-
-
-def get_resume_records_file_path(bot_user_id: str, vacancy_id: str) -> Path:
-    # TAGS: [get_data],[file_path]
-    """Get the path for a resume records file."""
-    resume_data_dir = ""
-    if resume_data_dir is None:
-        raise ValueError(f"Resume directory not found for user {bot_user_id} and vacancy {vacancy_id}. Vacancy directory may not exist or resumes directory may not be created.")
-    resume_records_file_path = resume_data_dir / f"{RESUME_RECORDS_FILENAME}.json"
-    if resume_records_file_path.exists():
-        logger.debug(f"'{RESUME_RECORDS_FILENAME}' found in {resume_data_dir}")
-        return resume_records_file_path
-    else:
-        # Create the file if it doesn't exist
-        create_resume_records_file(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-        logger.debug(f"'{RESUME_RECORDS_FILENAME}' created in {resume_data_dir}")
-        return resume_records_file_path
-
-
+# ****** METHODS with TAGS: [update_data] ******
 
 def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> str:
     # TAGS: [get_data]
@@ -516,46 +478,3 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
 
 
     return recommendation_text
-
-
-# ****** METHODS with TAGS: [update_data] ******
-'''
-
-def update_user_records_with_top_level_key(record_id: int | str, key: str, value: str | int | bool | dict | list) -> None:
-    # TAGS: [update_data]
-    """Only updates if the user_id exists in the JSON."""
-    try:
-        users_records_path = ""
-        # Read existing data
-        with open(users_records_path, "r", encoding="utf-8") as f:
-            records = json.load(f)
-        
-        # Convert user_id to string since JSON keys are always strings
-        record_id_str = str(record_id)
-        
-        if record_id_str in records:
-            records[record_id_str][key] = value
-            users_records_path.write_text(json.dumps(records, ensure_ascii=False, indent=2), encoding="utf-8")
-            logger.info(f"{record_id_str} has been successfully updated with {key}={value}")
-        else:
-            raise ValueError(f"User record {record_id_str} does not exist in the file {users_records_path}")
-    except Exception as e:
-        raise ValueError(f"Error updating user records with top level key: {e}")
-
-'''
-def update_resume_record_with_top_level_key(bot_user_id: str, vacancy_id: str, resume_record_id: str, key: str, value: str | int | bool | dict | list) -> None:
-    """Update resume record with new resume data. TAGS: [update_data]"""
-    try:
-        resume_records_path = get_resume_records_file_path(bot_user_id=bot_user_id, vacancy_id=vacancy_id)
-        with open(resume_records_path, "r", encoding="utf-8") as f:
-            resume_records = json.load(f)
-        if resume_record_id in resume_records:
-            resume_records[resume_record_id][key] = value
-            resume_records_path.write_text(json.dumps(resume_records, ensure_ascii=False, indent=2), encoding="utf-8")
-            logger.info(f"{resume_records_path} has been successfully updated with {key}={value}")
-        else:
-            raise ValueError(f"Resume record {resume_record_id} does not exist in the file {resume_records_path}")
-    except Exception as e:
-        raise ValueError(f"Error updating resume record with top level key: {e}")
-
-

@@ -51,7 +51,6 @@ class Vacancies(Base):
     id = Column(String, primary_key=True)
     manager_id = Column(String, ForeignKey("managers.id"), nullable=False)
     name = Column(String)
-    video_record_agreed = Column(Boolean, default=False, nullable=False)
     video_sending_confirmed = Column(Boolean, default=False, nullable=False)
     video_received = Column(Boolean, default=False, nullable=False)
     video_path = Column(String)
@@ -61,8 +60,6 @@ class Vacancies(Base):
     sourcing_criterias_json = Column(JSONB)
     sourcing_criterias_confirmed = Column(Boolean, default=False, nullable=False)
     sourcing_criterias_confirmation_time = Column(TIMESTAMP(timezone=True))
-    negotiations_collection_recieved = Column(Boolean, default=False, nullable=False)
-    negotiations_collection_path = Column(String)
     created_at = Column(TIMESTAMP(timezone=True), default=func.now())
     updated_at = Column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
 
