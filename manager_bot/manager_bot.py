@@ -109,7 +109,7 @@ from shared_services.data_service import (
     get_data_subdirectory_path,
 )
 
-from database import (
+from shared_services.database import (
     Managers,
     Vacancies,
     Negotiations,

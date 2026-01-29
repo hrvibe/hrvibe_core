@@ -18,7 +18,7 @@ from telegram import Update
 from sqlalchemy import select, Boolean, String
 
 from config import *
-from database import SessionLocal, Managers, Vacancies, Negotiations, Base
+from shared_services.database import SessionLocal, Managers, Vacancies, Negotiations, Base
 from shared_services.constants import (
     BOT_FOR_APPLICANTS_USERNAME,
     AUTH_REQ_TEXT,

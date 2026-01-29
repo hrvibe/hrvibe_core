@@ -47,7 +47,7 @@ from shared_services.questionnaire_service import (
     single_question_callback_handler,
 )
 
-from database import (
+from shared_services.database import (
     Managers,
     Vacancies,
     Negotiations,

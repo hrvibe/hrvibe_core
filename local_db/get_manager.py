@@ -15,7 +15,7 @@ load_dotenv()
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from database import SessionLocal, Managers
+from shared_services.database import SessionLocal, Managers
 from sqlalchemy.inspection import inspect
 
 def get_manager_by_id(manager_id):

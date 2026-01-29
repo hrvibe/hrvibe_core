@@ -26,7 +26,7 @@ except ImportError:
                     key, value = line.split('=', 1)
                     os.environ[key.strip()] = value.strip()
 
-from database import engine, Base, Managers, Vacancies, Negotiations
+from shared_services.database import engine, Base, Managers, Vacancies, Negotiations
 from sqlalchemy import inspect
 
 def get_schema():

@@ -15,7 +15,7 @@ load_dotenv()
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from database import SessionLocal, Vacancies
+from shared_services.database import SessionLocal, Vacancies
 
 def delete_vacancies_by_manager_id(manager_id, confirm=False):
     """Delete all vacancies for a given manager_id"""
