@@ -5,11 +5,9 @@ from datetime import datetime
 from pathlib import Path
 import os
 
-# ACTIVE_BOT from config for log directory naming
-try:
-    from config import ACTIVE_BOT as _ACTIVE_BOT_FOR_LOGGING
-except Exception:
-    _ACTIVE_BOT_FOR_LOGGING = os.getenv("ACTIVE_BOT", "manager_bot").strip().rstrip("%").lower()
+# Bot identity for log directory (set by orchestrator in child env as HRVIBE_BOT)
+def _bot_name_for_logging():
+    return os.getenv("HRVIBE_BOT", "manager_bot").strip().rstrip("%").lower()
 
 
 def setup_logging(max_bytes: int = 20 * 1024 * 1024, backup_count: int = 20):
@@ -35,8 +33,8 @@ def setup_logging(max_bytes: int = 20 * 1024 * 1024, backup_count: int = 20):
         # If relative path, resolve it relative to project root
         data_dir = project_root / users_data_dir_env.lstrip("./")
 
-    # Log directory and filename depend on ACTIVE_BOT
-    active_bot = _ACTIVE_BOT_FOR_LOGGING
+    # Log directory and filename depend on which bot (HRVIBE_BOT set by orchestrator)
+    active_bot = _bot_name_for_logging()
     if active_bot == "applicant_bot":
         logs_subdir = "applicant_bot_logs"
         log_basename_prefix = "applicant_bot"
