@@ -18,7 +18,7 @@ main app
 - if vidoe is fine, admin starts resume sourcing and resume analysis
 - once done admin get recomendation
 
-HH actions
+HH avaialble actions
 
 - отметить отклик прочитанным - POST /negotiations/read
 - действия по отклику - PUT negotiations/{collection_name}/{nid}
