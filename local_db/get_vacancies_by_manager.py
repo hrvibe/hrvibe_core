@@ -22,7 +22,7 @@ load_dotenv()
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from database import SessionLocal, Vacancies  # noqa: E402
+from shared_services.database import SessionLocal, Vacancies  # noqa: E402
 from sqlalchemy.inspection import inspect  # noqa: E402
 
 

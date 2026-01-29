@@ -33,7 +33,7 @@ from shared_services.db_service import (
 )
 
 
-from database import Base, Managers, Vacancies, Negotiations
+from shared_services.database import Base, Managers, Vacancies, Negotiations
 
 
 def create_json_file_with_dictionary_content(file_path: Path, content_to_write: dict) -> None:

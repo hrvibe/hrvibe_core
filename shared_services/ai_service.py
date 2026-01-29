@@ -7,7 +7,7 @@ import time
 from typing import List, Dict
 from pathlib import Path
 
-from database import Vacancies
+from shared_services.database import Vacancies
 from shared_services.db_service import get_column_value_in_db
 
 # Add project root to path to access shared_services

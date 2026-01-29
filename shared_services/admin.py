@@ -41,7 +41,7 @@ from shared_services.ai_service import (
     format_sourcing_criterias_analysis_result_for_markdown,
 )
 
-from database import Managers, Vacancies, Negotiations, Base, SessionLocal
+from shared_services.database import Managers, Vacancies, Negotiations, Base, SessionLocal
 
 
 

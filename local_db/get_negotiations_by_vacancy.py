@@ -34,7 +34,7 @@ else:
         print("   Required variables: DATABASE_URL (and others for full functionality)")
         sys.exit(1)
 
-from database import SessionLocal, Negotiations  # noqa: E402
+from shared_services.database import SessionLocal, Negotiations  # noqa: E402
 from sqlalchemy.inspection import inspect  # noqa: E402
 
 

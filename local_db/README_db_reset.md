@@ -61,7 +61,7 @@ DATABASE_URL=postgresql://gridavyv@localhost:5432/hrbive_new
 
 ## 4.1) Run the initializer:
 ```bash
-python3 -c "from dotenv import load_dotenv; load_dotenv(); from database import init_db; init_db()"
+python3 -c "from dotenv import load_dotenv; load_dotenv(); from shared_services.database import init_db; init_db()"
 ```
 
 ## 4.2) Verify Tables

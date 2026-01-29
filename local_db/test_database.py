@@ -15,12 +15,12 @@ load_dotenv()
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
-from database import (
+from shared_services.database import (
     init_db,
     SessionLocal,
     Managers,
     Vacancies,
-    Negotiations
+    Negotiations,
 )
 
 
@@ -28,7 +28,7 @@ def test_database_connection():
     """Test if database connection works"""
     print("🔍 Testing database connection...")
     try:
-        from database import engine
+        from shared_services.database import engine
         with engine.connect() as conn:
             print("✅ Database connection successful!")
             return True

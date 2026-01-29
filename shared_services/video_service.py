@@ -15,7 +15,7 @@ from shared_services.db_service import (
     get_column_value_by_field,
     update_column_value_by_field
 )
-from database import Managers, Vacancies, Negotiations
+from shared_services.database import Managers, Vacancies, Negotiations
 
 # Add project root to path to access shared_services
 project_root = Path(__file__).parent.parent.parent
