@@ -36,10 +36,6 @@ ADMIN_TOKEN = get_env_var("ADMIN_TOKEN")  # Token for callback endpoint
 # ——— OPENAI ———
 OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
 
-# ——— ORCHESTRATOR / BOT SELECTION ———
-# Which bot to run: manager_bot, applicant_bot (used by main.py orchestrator and logging)
-ACTIVE_BOT = os.getenv("ACTIVE_BOT", "manager_bot").strip().rstrip("%").lower()
-
 # ——— PATHS ———
 PROMPT_DIR = "prompts"
 # For local development, use a relative path (./users_data)

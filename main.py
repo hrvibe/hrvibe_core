@@ -1,6 +1,5 @@
 """
-Orchestrator for running a single bot: manager_bot, applicant_bot.
-Which bot runs depends on ACTIVE_BOT environment variable.
+Orchestrator: starts both manager_bot and applicant_bot as separate processes.
 """
 
 import os
@@ -16,9 +15,6 @@ from dotenv import load_dotenv
 
 # Load environment variables first, before setting up logging
 load_dotenv()
-
-# Import after load_dotenv so config sees env
-from config import ACTIVE_BOT as _CONFIG_ACTIVE_BOT
 
 USERS_DATA_DIR = os.getenv("USERS_DATA_DIR", "./users_data")
 logs_dir = Path(USERS_DATA_DIR) / "logs" / "orchestrator_logs"
@@ -47,9 +43,13 @@ logging.basicConfig(
 logger = logging.getLogger("hrvibe_orchestrator")
 logger.info(f"Orchestrator logging configured. Logs written to: {log_filename}")
 
+# Bot names and directories (both run by orchestrator)
+BOT_NAMES = ("manager_bot", "applicant_bot")
+
 
 def start_bot_process(name: str, cwd: str) -> subprocess.Popen:
-    logger.info("Starting %s bot in %s", name, cwd)
+    """Start one bot process. Sets HRVIBE_BOT in env so logging_service knows which bot it is."""
+    logger.info("Starting %s in %s", name, cwd)
 
     if not os.path.isdir(cwd):
         raise FileNotFoundError(f"Directory {cwd} does not exist")
@@ -58,16 +58,18 @@ def start_bot_process(name: str, cwd: str) -> subprocess.Popen:
     if not os.path.isfile(main_py_path):
         raise FileNotFoundError(f"main.py not found in {cwd}")
 
-    cmd = [sys.executable, "main.py"]
+    env = os.environ.copy()
+    env["HRVIBE_BOT"] = name
 
     proc = subprocess.Popen(
-        cmd,
+        [sys.executable, "main.py"],
         cwd=cwd,
+        env=env,
         stdout=sys.stdout,
         stderr=sys.stderr,
     )
 
-    logger.info("%s bot started with PID %s", name, proc.pid)
+    logger.info("%s started with PID %s", name, proc.pid)
     return proc
 
 
@@ -100,31 +102,12 @@ def shutdown(procs: list, reason: str):
 
 
 def main():
-    # Environment variables are already loaded at module level
     project_root = os.path.dirname(os.path.abspath(__file__))
 
-    logger.info("Orchestrator starting...")
+    logger.info("Orchestrator starting (both bots)...")
     logger.info("Project root: %s", project_root)
 
-    # Get which bot to run from config (ACTIVE_BOT from env, normalized)
-    active_bot = _CONFIG_ACTIVE_BOT
-    active_bot_raw = os.getenv("ACTIVE_BOT", "").strip()
-
-    if not active_bot:
-        logger.error("ACTIVE_BOT environment variable is not set. Please set it to 'manager_bot', 'applicant_bot' in .env file")
-        sys.exit(1)
-
-    valid_bots = ["manager_bot", "applicant_bot"]
-    if active_bot not in valid_bots:
-        logger.error("ACTIVE_BOT must be one of: %s, got: %s (raw value: '%s')", ", ".join(valid_bots), active_bot, active_bot_raw)
-        sys.exit(1)
-
-    logger.info("ACTIVE_BOT = %s", active_bot)
-
-    # Determine bot directory based on ACTIVE_BOT value
-    bot_cwd = os.path.join(project_root, active_bot)
-    
-    # Проверка USERS_DATA_DIR
+    # Ensure USERS_DATA_DIR exists
     users_data_dir = Path(os.getenv("USERS_DATA_DIR", "./users_data"))
     try:
         users_data_dir.mkdir(parents=True, exist_ok=True)
@@ -133,15 +116,14 @@ def main():
         logger.error("Failed to create USERS_DATA_DIR %s: %s", users_data_dir, e)
         sys.exit(1)
 
-    bot_proc = None
     procs = []
-
     try:
-        # Start the active bot
-        bot_proc = start_bot_process(active_bot, bot_cwd)
-        logger.info("%s started successfully", active_bot)
-        
-        procs.append(bot_proc)
+        for bot_name in BOT_NAMES:
+            bot_cwd = os.path.join(project_root, bot_name)
+            proc = start_bot_process(bot_name, bot_cwd)
+            procs.append(proc)
+
+        logger.info("Both bots started. Monitoring...")
 
         shutdown_requested = False
 
@@ -162,15 +144,23 @@ def main():
         signal.signal(signal.SIGTERM, handle_sigterm)
         signal.signal(signal.SIGINT, handle_sigint)
 
-        logger.info("Monitoring bot process...")
+        exit_code = 0
         while True:
-            bot_code = bot_proc.poll() if bot_proc else None
+            for i, proc in enumerate(procs):
+                code = proc.poll()
+                if code is not None:
+                    name = BOT_NAMES[i]
+                    logger.error("%s exited with code: %s", name, code)
+                    exit_code = code
+                    break
+            else:
+                time.sleep(2)
+                continue
+            break
 
-            if bot_code is not None:
-                logger.error("Bot exited with code: %s", bot_code)
-                break
-
-            time.sleep(2)
+        shutdown(procs, "bot-exit")
+        logger.info("Orchestrator exiting")
+        sys.exit(exit_code)
 
     except KeyboardInterrupt:
         logger.info("Received KeyboardInterrupt")
