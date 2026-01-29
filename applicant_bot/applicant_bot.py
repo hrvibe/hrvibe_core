@@ -32,21 +32,6 @@ from shared_services.video_service import (
     download_incoming_video_locally
 )
 
-from services.status_validation_service import (
-    is_applicant_in_applicant_bot_records,
-    is_privacy_policy_confirmed,
-    is_resume_video_received,
-    is_vacancy_exist,
-)
-
-from shared_services.data_service import (
-    get_directory_for_video_from_managers,
-    get_manager_user_id_from_applicant_bot_records,
-    get_vacancy_id_from_applicant_bot_records,
-    create_new_applicant_in_applicant_bot_records,
-    update_applicant_bot_records_with_top_level_key,
-    get_applicant_bot_records_file_path,
-)
 
 from shared_services.data_service import (
     get_decision_status_from_selected_callback_code,
@@ -60,7 +45,6 @@ from shared_services.questionnaire_service import (
     clear_all_unprocessed_keyboards,
     ask_single_question_from_update,
     single_question_callback_handler,
-    ask_single_question_from_application,
 )
 
 from database import (
@@ -72,7 +56,6 @@ from database import (
 from shared_services.db_service import (
     is_boolean_field_true_in_db,
     update_record_in_db,
-    create_new_record_in_db,
     is_value_in_db,
     get_column_value_in_db,
     get_column_value_by_field,
@@ -156,7 +139,7 @@ async def setup_new_applicant_user_command(update: Update, context: ContextTypes
         bot_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
         logger.info(f"{log_prefix}: user_id fetched {bot_user_id}")
 
-        negotiation_id = extract_negotiation_id_from_payload(update=update, context=context)
+        negotiation_id = await extract_negotiation_id_from_payload(update=update, context=context)
 
         if negotiation_id is None:
             logger.debug(f"{log_prefix}: No negotiation_id found in payload")
@@ -594,12 +577,49 @@ async def say_goodbye_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 # ------------ MAIN MENU related commands ------------
 ########################################################################################
 
-async def user_status(applicant_user_id: str, negotiation_id: str) -> dict:
-    status_dict = {}
-    status_dict["bot_authorization"] = is_applicant_in_applicant_bot_records(applicant_record_id=applicant_user_id)
-    status_dict["privacy_policy_confirmation"] = is_privacy_policy_confirmed(applicant_record_id=applicant_user_id)
-    status_dict["welcome_video_shown"] = is_boolean_field_true_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="welcome_video_shown")
-    status_dict["resume_video_recorded"] = is_resume_video_received(applicant_record_id=applicant_user_id)
+async def user_status(applicant_user_id: str) -> dict:
+    """Return high-level status flags for the applicant user."""
+    status_dict: dict[str, bool] = {}
+
+    # Has this Telegram user ever created a negotiation record?
+    has_negotiation = is_value_in_db(
+        db_model=Negotiations,
+        field_name="tg_user_id",
+        value=applicant_user_id,
+    )
+    status_dict["bot_authorization"] = has_negotiation
+
+    # If there is no negotiation yet, the rest of the steps are definitely not completed
+    if not has_negotiation:
+        status_dict["privacy_policy_confirmation"] = False
+        status_dict["welcome_video_shown"] = False
+        status_dict["resume_video_recorded"] = False
+        return status_dict
+
+    # Fetch negotiation id for this applicant
+    negotiation_id = get_column_value_by_field(
+        db_model=Negotiations,
+        search_field_name="tg_user_id",
+        search_value=applicant_user_id,
+        target_field_name="id",
+    )
+
+    status_dict["privacy_policy_confirmation"] = is_boolean_field_true_in_db(
+        db_model=Negotiations,
+        record_id=negotiation_id,
+        field_name="privacy_policy_confirmed",
+    )
+    status_dict["welcome_video_shown"] = is_boolean_field_true_in_db(
+        db_model=Negotiations,
+        record_id=negotiation_id,
+        field_name="welcome_video_shown",
+    )
+    status_dict["resume_video_recorded"] = is_boolean_field_true_in_db(
+        db_model=Negotiations,
+        record_id=negotiation_id,
+        field_name="video_received",
+    )
+
     return status_dict
 
 
@@ -622,10 +642,13 @@ async def build_user_status_text(status_dict: dict) -> str:
 
 async def show_chat_menu_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
+    log_prefix = "show_chat_menu_command"
+    logger.info(f"{log_prefix}: start")
+
     # ----- IDENTIFY USER and pull required data from records -----
     
     applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"show_chat_menu_command started. applicant_user_id: {applicant_user_id}")
+    logger.info(f"{log_prefix}: applicant_user_id fetched {applicant_user_id}")
     status_dict = await user_status(applicant_user_id=applicant_user_id)
     status_text = await build_user_status_text(status_dict=status_dict)
 
@@ -640,7 +663,7 @@ async def show_chat_menu_command(update: Update, context: ContextTypes.DEFAULT_T
         # add button only if status is False (not completed)
         if key in status_to_button_transcription and value_bool == False:
             answer_options.append((status_to_button_transcription[key], "menu_action:" + key))
-    logger.debug(f"Answer options for chat menu: {answer_options}")
+    logger.debug(f"{log_prefix}: answer options for chat menu: {answer_options}")
 
     # ----- STORE ANSWER OPTIONS in CONTEXT -----
     
@@ -664,10 +687,13 @@ async def show_chat_menu_command(update: Update, context: ContextTypes.DEFAULT_T
 async def handle_chat_menu_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle chat menu action button clicks."""
     
+    log_prefix = "handle_chat_menu_action"
+    logger.info(f"{log_prefix}: start")
+
     # ----- IDENTIFY USER and pull required data from records -----
 
     applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"handle_chat_menu_action started. applicant_user_id: {applicant_user_id}")
+    logger.info(f"{log_prefix}: applicant_user_id fetched {applicant_user_id}")
 
     # ------- UNDERSTAND WHAT BUTTON was clicked and get "callback_data" from it -------
     
@@ -675,7 +701,7 @@ async def handle_chat_menu_action(update: Update, context: ContextTypes.DEFAULT_
     selected_callback_code = await handle_answer(update, context)
     
     if not selected_callback_code:
-        logger.warning("No callback_code received from handle_answer")
+        logger.warning(f"{log_prefix}: no callback_code received from handle_answer")
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
     
@@ -699,7 +725,7 @@ async def handle_chat_menu_action(update: Update, context: ContextTypes.DEFAULT_
         await send_message_to_user(update, context, text=f"Вы выбрали: '{selected_button_text}'")
     else:
         # No options available, inform user and return
-        logger.warning(f"Could not find button text for callback_code '{selected_callback_code}'. Available options: {chat_menu_action_options}")
+        logger.warning(f"{log_prefix}: could not find button text for callback_code '{selected_callback_code}'. Available options: {chat_menu_action_options}")
         if update.callback_query and update.callback_query.message:
             await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
         return
@@ -708,7 +734,7 @@ async def handle_chat_menu_action(update: Update, context: ContextTypes.DEFAULT_
     
     # Extract action from callback_data (format: "menu_action:action_name")
     action = get_decision_status_from_selected_callback_code(selected_callback_code=selected_callback_code)
-    logger.debug(f"Extracted action from callback_code '{selected_callback_code}': '{action}'")
+    logger.debug(f"{log_prefix}: extracted action from callback_code '{selected_callback_code}': '{action}'")
  
 
     if action == "bot_authorization":
@@ -720,7 +746,7 @@ async def handle_chat_menu_action(update: Update, context: ContextTypes.DEFAULT_
     elif action == "resume_video_recorded":
         await ask_to_record_video_command(update=update, context=context)
     else:
-        logger.warning(f"Unknown action '{action}' from callback_code '{selected_callback_code}'. Available actions: bot_authorization, privacy_policy_confirmation, privacy_policy, hh_authorization, hh_auth, select_vacancy, record_video, get_recommendations")
+        logger.warning(f"{log_prefix}: unknown action '{action}' from callback_code '{selected_callback_code}'. Available actions: bot_authorization, privacy_policy_confirmation, privacy_policy, hh_authorization, hh_auth, select_vacancy, record_video, get_recommendations")
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
 
 
@@ -728,10 +754,13 @@ async def handle_feedback_button_click(update: Update, context: ContextTypes.DEF
     # TAGS: [user_related]
     """Handle feedback button click. Sets flag to wait for user feedback message."""
 
+    log_prefix = "handle_feedback_button_click"
+    logger.info(f"{log_prefix}: start")
+
     # ----- IDENTIFY USER and pull required data from records -----
 
     applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"handle_feedback_button_click started. applicant_user_id: {applicant_user_id}")
+    logger.info(f"{log_prefix}: applicant_user_id fetched {applicant_user_id}")
 
     # ----- SET WAITING FOR FEEDBACK FLAG TO TRUE -----
 
@@ -744,6 +773,9 @@ async def handle_feedback_message(update: Update, context: ContextTypes.DEFAULT_
     # TAGS: [user_related]
     """Handle feedback message from user. Forwards it to admin."""
     
+    log_prefix = "handle_feedback_message"
+    logger.info(f"{log_prefix}: start")
+
     # ----- CHECK IF MESSAGE IS NOT EMPTY -----
 
     if not update.message:
@@ -752,7 +784,7 @@ async def handle_feedback_message(update: Update, context: ContextTypes.DEFAULT_
     # ----- IDENTIFY USER and pull required data from records -----
 
     applicant_user_id = str(get_tg_user_data_attribute_from_update_object(update=update, tg_user_attribute="id"))
-    logger.info(f"handle_feedback_message started. applicant_user_id: {applicant_user_id}")
+    logger.info(f"{log_prefix}: applicant_user_id fetched {applicant_user_id}")
     
     # ----- CHECK FOR WAITING FOR FEEDBACK FLAG -----
 
@@ -771,29 +803,26 @@ async def handle_feedback_message(update: Update, context: ContextTypes.DEFAULT_
     try:
         if context.application:
             # Get user info for admin message
-            applicant_records_file_path = get_applicant_bot_records_file_path()
             user_info = ""
             try:
-                with open(applicant_records_file_path, "r", encoding="utf-8") as f:
-                    applicant_records = json.load(f)
-                    if is_applicant_in_applicant_bot_records(applicant_record_id=applicant_user_id):
-                        manager_user_id = applicant_records[applicant_user_id].get("manager_user_id", "N/A")
-                        vacancy_id = applicant_records[applicant_user_id].get("vacancy_id", "N/A")
-                        resume_id = applicant_records[applicant_user_id].get("resume_id", "N/A")
-                        username = applicant_records[applicant_user_id].get("username", "N/A")
-                        first_name = applicant_records[applicant_user_id].get("first_name", "N/A")
-                        last_name = applicant_records[applicant_user_id].get("last_name", "N/A")
-                        user_info = (
-                            f"Вакансия: менеджер ID {manager_user_id}, вакансия {vacancy_id}, резюме {resume_id})",
-                            f"Соискатель: ID {applicant_user_id}, @{username}, {first_name} {last_name})"
-                        )
-                    else:
-                        user_info = f"Пользователь ID: {applicant_user_id}, не найден в applicant_bot_records."
+                if is_value_in_db(db_model=Negotiations, field_name="tg_user_id", value=applicant_user_id):
+                    negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=applicant_user_id, target_field_name="id")
+                    vacancy_id = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="vacancy_id")
+                    vacancy_name = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="name")
+                    username = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="tg_username")
+                    first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_first_name")
+                    last_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_last_name")
+                    user_info = (
+                        f"Вакансия:{vacancy_name} / ID:{vacancy_id}",
+                        f"Соискатель: Negotiation ID {negotiation_id} / User ID {applicant_user_id}, @{username}, {first_name} {last_name})"
+                    )
+                else:
+                    user_info = f"Пользователь User ID: {applicant_user_id}, не найден в базе данных."
             except Exception as e:
-                logger.error(f"Failed to get user info for feedback: {e}")
+                logger.error(f"{log_prefix}: failed to get user info for feedback: {e}")
                 user_info = f"Пользователь ID: {applicant_user_id}"
             
-            admin_message = f"⚠️  Обратная связь от пользователя\n\n{user_info}\n\nСообщение:\n{feedback_text}"
+            admin_message = f"⚠️  Applicant user feedback:\n\n{user_info}\n\nMessage:\n{feedback_text}"
             await send_message_to_admin(
                 application=context.application,
                 text=admin_message
@@ -801,10 +830,10 @@ async def handle_feedback_message(update: Update, context: ContextTypes.DEFAULT_
             # Confirm to user
             await send_message_to_user(update, context, text=FEEDBACK_SENT_TEXT)
         else:
-            logger.error("Cannot send feedback to admin: application not available")
+            logger.error(f"{log_prefix}: cannot send feedback to admin: application not available")
             await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
     except Exception as e:
-        logger.error(f"Failed to send feedback to admin: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: failed to send feedback to admin: {e}", exc_info=True)
         await send_message_to_user(update, context, text=FAIL_TECHNICAL_SUPPORT_TEXT)
 
 
@@ -812,6 +841,9 @@ async def handle_feedback_non_text_message(update: Update, context: ContextTypes
     # TAGS: [user_related]
     """Handle non-text messages when waiting for feedback (reject audio, images, etc.)."""
     
+    log_prefix = "handle_feedback_non_text_message"
+    logger.info(f"{log_prefix}: start")
+
     if not update.message:
         return
     
@@ -851,7 +883,6 @@ async def handle_bottom_menu_buttons(update: Update, context: ContextTypes.DEFAU
 
 def create_applicant_application(token: str) -> Application:
     application = Application.builder().token(token).build()
-    application.add_handler(CallbackQueryHandler(handle_answer_video_record_request, pattern=r"^record_video_request:"))
     application.add_handler(CallbackQueryHandler(handle_answer_confrim_sending_video, pattern=r"^sending_video_confirmation:"))
     application.add_handler(CallbackQueryHandler(handle_answer_policy_confirmation, pattern=r"^privacy_policy_confirmation:"))
     application.add_handler(CallbackQueryHandler(handle_chat_menu_action, pattern=r"^menu_action:"))

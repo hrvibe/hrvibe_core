@@ -10,23 +10,17 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from applicant_bot import (
-    create_applicant_application, 
-    start_command, 
-    admin_get_list_of_applicants_command,
-    admin_send_message_to_applicant_command,
+    create_applicant_application,
+    start_command,
 )
 
-from services.data_service import (
-    create_applicant_bot_data_directory,
-    create_applicant_bot_records_file,
-)
 from shared_services.constants import (
     BTN_MENU,
     BTN_FEEDBACK,
     WELCOME_TEXT_WHEN_STARTING_BOT_APPLICANT as WELCOME_TEXT_WHEN_STARTING_BOT,
 )
-"""from services.logging_service import setup_logging"""
-from shared_services.auth_service import setup_logging
+from shared_services.admin import admin_send_message_command
+from shared_services.logging_service import setup_logging
 
 # required for manager menu
 from telegram.ext import CommandHandler, MessageHandler, filters, ContextTypes
@@ -76,9 +70,7 @@ async def run_applicant_bot() -> None:
         raise RuntimeError("TELEGRAM_APPLICANT_BOT_TOKEN not found in environment variables")
     application = create_applicant_application(applicant_token)
     application.add_handler(CommandHandler("start", _show_bottom_menu_on_start), group=-1)
-    application.add_handler(CommandHandler("admin_get_list_of_applicants", admin_get_list_of_applicants_command))
-    application.add_handler(CommandHandler("admin_send_message_to_applicant", admin_send_message_to_applicant_command))
-    
+    application.add_handler(CommandHandler("admin_send_message", admin_send_message_command))    
     # ------------- INITIALIZATION AND STARTING OF THE APPLICATION -------------
 
     await application.initialize()
@@ -132,12 +124,7 @@ def main():
 
     # setup_logging() calls logging.basicConfig() that configures the root logger (the top-level logger in Python's hierarchy).
     setup_logging()
-    logger.info("Telegram Bot for Managers is running")
-
-    # ------------- SETUP OF THE DATA DIRECTORY and USER RECORDS FILE -------------
-
-    create_applicant_bot_data_directory() # will be skipped if exist
-    create_applicant_bot_records_file() # will be skipped if exist
+    logger.info("Telegram Bot for Applicants is running")
 
     # ------------- STARTING OF THE MANAGER BOT -------------
 
@@ -146,7 +133,7 @@ def main():
         # this will create new event loop => process all asynchronous tasks in the background => close the event loop after completion
         asyncio.run(run_applicant_bot())
     except KeyboardInterrupt:
-        logger.info("\nTelegram Bot for Managers has been stopped by user.")
+        logger.info("\nTelegram Bot for Applicants has been stopped by user.")
 
 
 if __name__ == "__main__":

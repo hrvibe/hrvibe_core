@@ -452,6 +452,12 @@ async def hh_authorization_command(update: Update, context: ContextTypes.DEFAULT
                     logger.info(f"{log_prefix}: Authorization successful on attempt {attempt}. Access token '{access_token}' and expires_at '{expires_at}' updated in records.")
                     await send_message_to_user(update, context, text=AUTH_SUCCESS_TEXT)
 
+                    if context.application:
+                        await send_message_to_admin(
+                            application=context.application,
+                            text=f"😎 New user {bot_user_id} has authorized on attempt {attempt}."
+                        )
+
         # ----- PULL USER DATA from HH and enrich records with it -----
 
                     await pull_user_data_from_hh_command(update=update, context=context)
@@ -1384,18 +1390,22 @@ async def parse_negotiations_collection_to_db(vacancy_id: str, negotiations_json
 
 async def send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command(negotiation_id: str) -> None:
     # TAGS: [resume_related]
+
+    log_prefix = "send_tg_link_to_applicant_and_change_employer_state_triggered_by_admin_command"
+    logger.info(f"{log_prefix}: started. negotiation_id: {negotiation_id}")
+
     """Sources negotiations collection."""
     
     try:
-        logger.info(f"send_tg_link_to_applicants_triggered_by_admin_command: started. negotiation_id: {negotiation_id}")
+        logger.info(f"{log_prefix}: started. negotiation_id: {negotiation_id}")
 
         send_message_to_applicant_command(negotiation_id=negotiation_id)
         change_employer_state_command(negotiation_id=negotiation_id)
         
 
-        logger.info(f"send_tg_link_to_applicants_triggered_by_admin_command: successfully completed for negotiation_id: {negotiation_id}")
+        logger.info(f"{log_prefix}: successfully completed for negotiation_id: {negotiation_id}")
     except Exception as e:
-        logger.error(f"send_tg_link_to_applicants_triggered_by_admin_command: Failed to send message to applicant for negotiation_id {negotiation_id}: {e}", exc_info=True)
+        logger.error(f"{log_prefix}: Failed to send message to applicant for negotiation_id {negotiation_id}: {e}", exc_info=True)
         raise
 
 

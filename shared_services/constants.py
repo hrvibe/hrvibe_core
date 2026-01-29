@@ -19,7 +19,7 @@ EMPLOYER_STATE_CONSIDER = "consider"
 BASE_URL = "https://hrvibe-hh-callback-endpoint.onrender.com"
 
 # ----- VIDEO DIRECTORIES CONSTANTS -----
-BOT_FOR_APPLICANTS_USERNAME = "HRVibeApplicant"
+BOT_FOR_APPLICANTS_USERNAME = "HRVibeApplicantBot"
 CALLBACK_ENDPOINT_RESPONSE_WHEN_RECORDS_NOT_READY = {'detail': 'State not ready or not found'}
 
 # ----- DATA SERVICE CONSTANTS -----
@@ -163,7 +163,7 @@ MISSING_APPLICANTS_WITH_VIDEO_TEXT = "Пока нет подходящих ка�
 # ----- FEEDBACK CONSTANTS -----
 FEEDBACK_REQUEST_TEXT = "Напишите ваш вопрос или обратную связь в чате и я направлю ее админу."
 FEEDBACK_SENT_TEXT = "Ваше сообщение отправлено администратору. Спасибо за обратную связь!"
-FEEDBACK_ONLY_TEXT_ALLOWED_TEXT = "Пожалуйста, отправьте только текстовое сообщение. Видео, аудио и изображения пока не принимаются."
+FEEDBACK_ONLY_TEXT_ALLOWED_TEXT = "Пожалуйста, отправьте только текстовое сообщение или видео. Аудио и изображения не принимаются."
 
 # ----- INTERVIEW INVITATION CONSTANTS -----
 INVITE_TO_INTERVIEW_CALLBACK_PREFIX = "invite_to_interview"

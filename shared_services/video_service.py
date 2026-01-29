@@ -158,7 +158,7 @@ async def download_incoming_video_locally(update: Update, context: ContextTypes.
                 filename = f"vacancy_id_{vacancy_id}_time_{timestamp}.mp4"
 
         elif user_type == "applicant":
-            negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="id", search_value=bot_user_id, target_field_name="id")
+            negotiation_id = get_column_value_by_field(db_model=Negotiations, search_field_name="tg_user_id", search_value=bot_user_id, target_field_name="id")
             # Generate unique filename with appropriate extension
             timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
             if file_type == "video_note":
