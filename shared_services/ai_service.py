@@ -15,9 +15,10 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from shared_services.constants import MODEL_NAME
+from config import OPENAI_API_KEY
 
 logger = logging.getLogger(__name__)
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 
 

@@ -12,13 +12,9 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from shared_services.constants import BASE_URL
+from config import ADMIN_TOKEN, BOT_SHARED_SECRET, USER_AGENT
 
 logger = logging.getLogger(__name__)
-
-
-ADMIN_TOKEN  = os.getenv("ADMIN_TOKEN")
-BOT_SHARED_SECRET = os.getenv("BOT_SHARED_SECRET")
-USER_AGENT = os.getenv("USER_AGENT")
 
 def callback_endpoint_healthcheck() -> bool:
     """

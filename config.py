@@ -31,6 +31,14 @@ USER_AGENT = get_env_var("USER_AGENT", "HR Screening Bot")
 # ——— SECURITY ———
 BOT_SHARED_SECRET = get_env_var("BOT_SHARED_SECRET")  # Должен быть длинным и случайным
 ADMIN_ID = int(get_env_var("ADMIN_ID"))  # Telegram ID админа
+ADMIN_TOKEN = get_env_var("ADMIN_TOKEN")  # Token for callback endpoint
+
+# ——— OPENAI ———
+OPENAI_API_KEY = get_env_var("OPENAI_API_KEY")
+
+# ——— ORCHESTRATOR / BOT SELECTION ———
+# Which bot to run: manager_bot, applicant_bot (used by main.py orchestrator and logging)
+ACTIVE_BOT = os.getenv("ACTIVE_BOT", "manager_bot").strip().rstrip("%").lower()
 
 # ——— PATHS ———
 PROMPT_DIR = "prompts"
