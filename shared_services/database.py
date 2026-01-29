@@ -1,7 +1,10 @@
 """
 Shared database models and configuration for manager_bot and applicant_bot.
-Single source of truth: both services use this module (no per-bot database.py).
+Pure importable module: no schema creation or migrations at import time.
+Both services use this module for DB access only. Run migrations via scripts/migrate.py.
 """
+import os
+import logging
 from sqlalchemy import (
     create_engine,
     Column,
@@ -10,25 +13,72 @@ from sqlalchemy import (
     BigInteger,
     TIMESTAMP,
     ForeignKey,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
 
-# Import DATABASE_URL from project config (config.py at project root)
-from config import DATABASE_URL
+logger = logging.getLogger(__name__)
 
-# Strip whitespace and special characters that might be accidentally included
-DATABASE_URL = DATABASE_URL.strip().rstrip('%')
+# --- Configuration from environment (no config.py dependency for DB-only usage) ---
+def _get_database_url() -> str:
+    url = os.getenv("DATABASE_URL")
+    if not url or not url.strip():
+        raise ValueError(
+            "DATABASE_URL environment variable is not set. "
+            "Set it for DB connection (e.g. on Render: Postgres connection string)."
+        )
+    url = url.strip().rstrip("%")
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+    return url
 
-# Fix: Render uses postgresql+psycopg2, but URL may be postgres://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# Create engine
-engine = create_engine(DATABASE_URL, pool_pre_ping=True, pool_recycle=300, echo=False)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def _engine_config():
+    pool_size = int(os.getenv("DB_POOL_SIZE", "5"))
+    max_overflow = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+    pool_timeout = int(os.getenv("DB_POOL_TIMEOUT", "30"))
+    return {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+        "pool_size": pool_size,
+        "max_overflow": max_overflow,
+        "pool_timeout": pool_timeout,
+        "echo": False,
+    }
+
+
+# Lazy engine/session: created on first use so env can be set before import side-effects
+_engine = None
+_SessionLocal = None
+
+
+def get_engine():
+    """Return the shared SQLAlchemy engine. Creates it on first call."""
+    global _engine
+    if _engine is None:
+        _engine = create_engine(_get_database_url(), **_engine_config())
+    return _engine
+
+
+def get_session_factory():
+    """Return the sessionmaker (SessionLocal). Creates it on first call."""
+    global _SessionLocal
+    if _SessionLocal is None:
+        _SessionLocal = sessionmaker(
+            autocommit=False,
+            autoflush=False,
+            bind=get_engine(),
+        )
+    return _SessionLocal
+
+
+def get_session():
+    """Return a new DB session. Use as context manager or call .close() when done."""
+    return get_session_factory()()
+
 
 Base = declarative_base()
 
@@ -115,10 +165,25 @@ class Negotiations(Base):
     updated_at = Column(TIMESTAMP(timezone=True), default=func.now(), onupdate=func.now())
 
 
-def init_db():
-    """
-    Create tables if they do not exist.
-    Call at application startup.
-    """
-    Base.metadata.create_all(bind=engine)
-    print("✅ Таблицы созданы или уже существуют")
+# Ensure engine and session factory are created on first import (for backward-compat names below)
+def _bind_engine_and_session():
+    get_engine()
+    get_session_factory()
+
+
+def db_healthcheck() -> bool:
+    """Return True if DB is reachable, False otherwise. Does not create schema."""
+    try:
+        eng = get_engine()
+        with eng.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return True
+    except Exception as e:
+        logger.warning("db_healthcheck failed: %s", e)
+        return False
+
+
+# Module-level engine and SessionLocal for backward compatibility (used by db_service, admin, local_db, etc.)
+_bind_engine_and_session()
+engine = _engine
+SessionLocal = _SessionLocal

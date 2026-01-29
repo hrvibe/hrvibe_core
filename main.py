@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 # Load environment variables first, before setting up logging
 load_dotenv()
 
+# Import after load_dotenv so config sees env
+from config import ACTIVE_BOT as _CONFIG_ACTIVE_BOT
+
 USERS_DATA_DIR = os.getenv("USERS_DATA_DIR", "./users_data")
 logs_dir = Path(USERS_DATA_DIR) / "logs" / "orchestrator_logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
@@ -103,20 +106,19 @@ def main():
     logger.info("Orchestrator starting...")
     logger.info("Project root: %s", project_root)
 
-    # Get which bot to run from environment variable
+    # Get which bot to run from config (ACTIVE_BOT from env, normalized)
+    active_bot = _CONFIG_ACTIVE_BOT
     active_bot_raw = os.getenv("ACTIVE_BOT", "").strip()
-    # Remove trailing % characters (common shell artifact) and other non-alphanumeric chars except underscore
-    active_bot = active_bot_raw.rstrip('%').strip().lower()
-    
+
     if not active_bot:
         logger.error("ACTIVE_BOT environment variable is not set. Please set it to 'manager_bot', 'applicant_bot' in .env file")
         sys.exit(1)
-    
+
     valid_bots = ["manager_bot", "applicant_bot"]
     if active_bot not in valid_bots:
         logger.error("ACTIVE_BOT must be one of: %s, got: %s (raw value: '%s')", ", ".join(valid_bots), active_bot, active_bot_raw)
         sys.exit(1)
-    
+
     logger.info("ACTIVE_BOT = %s", active_bot)
 
     # Determine bot directory based on ACTIVE_BOT value

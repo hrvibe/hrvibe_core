@@ -5,6 +5,12 @@ from datetime import datetime
 from pathlib import Path
 import os
 
+# ACTIVE_BOT from config for log directory naming
+try:
+    from config import ACTIVE_BOT as _ACTIVE_BOT_FOR_LOGGING
+except Exception:
+    _ACTIVE_BOT_FOR_LOGGING = os.getenv("ACTIVE_BOT", "manager_bot").strip().rstrip("%").lower()
+
 
 def setup_logging(max_bytes: int = 20 * 1024 * 1024, backup_count: int = 20):
     """Configure logging to write to both console and file with rotation.
@@ -29,9 +35,8 @@ def setup_logging(max_bytes: int = 20 * 1024 * 1024, backup_count: int = 20):
         # If relative path, resolve it relative to project root
         data_dir = project_root / users_data_dir_env.lstrip("./")
 
-    # Log directory and filename depend on ACTIVE_BOT from .env
-    active_bot_raw = os.getenv("ACTIVE_BOT", "manager_bot")
-    active_bot = active_bot_raw.rstrip("%").strip().lower()
+    # Log directory and filename depend on ACTIVE_BOT
+    active_bot = _ACTIVE_BOT_FOR_LOGGING
     if active_bot == "applicant_bot":
         logs_subdir = "applicant_bot_logs"
         log_basename_prefix = "applicant_bot"

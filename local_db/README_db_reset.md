@@ -59,9 +59,10 @@ DATABASE_URL=postgresql://gridavyv@localhost:5432/hrbive_new
 
 ## 4) Create Tables from Models
 
-## 4.1) Run the initializer:
+## 4.1) Run the migration (idempotent; safe to run multiple times):
 ```bash
-python3 -c "from dotenv import load_dotenv; load_dotenv(); from shared_services.database import init_db; init_db()"
+# From project root
+python3 scripts/migrate.py
 ```
 
 ## 4.2) Verify Tables

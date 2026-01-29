@@ -16,7 +16,6 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from shared_services.database import (
-    init_db,
     SessionLocal,
     Managers,
     Vacancies,
@@ -38,12 +37,14 @@ def test_database_connection():
 
 
 def test_create_tables():
-    """Test creating tables"""
-    print("\n🔍 Creating tables...")
+    """Test creating tables (runs idempotent migration)"""
+    print("\n🔍 Creating tables (run migrate)...")
     try:
-        init_db()
-        print("✅ Tables created successfully!")
-        return True
+        from scripts.migrate import run_migrate
+        if run_migrate():
+            print("✅ Tables created successfully!")
+            return True
+        return False
     except Exception as e:
         print(f"❌ Failed to create tables: {e}")
         return False
