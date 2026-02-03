@@ -370,7 +370,6 @@ async def handle_answer_policy_confirmation(update: Update, context: ContextType
         # ----- IF USER CHOSE "YES" -----
 
         if privacy_policy_confirmation_user_decision == "yes":
-            await send_message_to_user(update, context, text=SUCCESS_TO_GET_PRIVACY_POLICY_CONFIRMATION_TEXT)
 
             # ----- SEND NEW USER SETUP NOTIFICATION to admin  -----
             if context.application:
@@ -624,6 +623,7 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
         logger.debug(f"{log_prefix}: no matching answer_key returned")
         return
 
+
     # --- UPDATE USER RECORDS with selected option ---
 
     sending_video_confirmation_user_decision = answer_key
@@ -631,6 +631,8 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
     # ----- IF USER CHOSE "YES" start video download  -----
 
     if sending_video_confirmation_user_decision == "yes":
+
+        await send_message_to_user(update, context, text="Отлично, сохраняем видео...")
 
         update_column_value_by_field(
             db_model=Vacancies,

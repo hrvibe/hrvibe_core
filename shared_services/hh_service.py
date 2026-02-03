@@ -6,8 +6,9 @@ from typing import Optional
 from pathlib import Path
 
 # Add project root to path to access shared_services
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
+# parent.parent = shared_services -> repo root (hrvibe_core)
+_project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(_project_root))
 
 from telegram._passport.passportdata import PassportData
 
@@ -28,7 +29,7 @@ USER_AGENT       = os.getenv("USER_AGENT")
 def _get_fake_vacancies_data() -> Optional[dict]:
 
     log_info_msg = "_get_fake_vacancies_data"
-    fake_vacancies_file_path = "/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_vacancies.json"
+    fake_vacancies_file_path = _project_root / "test_data" / "fake_vacancies.json"
     with open(fake_vacancies_file_path, "r", encoding="utf-8") as f:
         vacancies_data = json.load(f)
     logger.debug(f"{log_info_msg}: Vacancies data fetched from Fake Data file")
@@ -37,7 +38,7 @@ def _get_fake_vacancies_data() -> Optional[dict]:
 
 def _get_fake_vacancy_description_data() -> Optional[dict]:
     log_info_msg = "_get_fake_vacancy_description_data"
-    fake_vacancy_description_file_path = "/Users/gridavyv/HRVibe/hrvibe_2.1/test_data/fake_vacancy_description.json"
+    fake_vacancy_description_file_path = _project_root / "test_data" / "fake_vacancy_description.json"
     with open(fake_vacancy_description_file_path, "r", encoding="utf-8") as f:
         vacancy_description = json.load(f)
     logger.debug(f"{log_info_msg}: Vacancy description fetched from Fake Data file")
@@ -46,7 +47,7 @@ def _get_fake_vacancy_description_data() -> Optional[dict]:
 
 def _get_fake_negotiations_collection_data() -> Optional[dict]:
     log_info_msg = "_get_fake_negotiations_collection_data"
-    fake_negotiations_file_path = "/Users/gridavyv/HRVibe/hrvibe_core/test_data/fake_negotiations_collections_response_3_items.json"
+    fake_negotiations_file_path = _project_root / "test_data" / "fake_negotiations_collections_response_3_items.json"
     with open(fake_negotiations_file_path, "r", encoding="utf-8") as f:
         negotiations_collection_data = json.load(f)
     logger.debug(f"{log_info_msg}: Negotiations collection data fetched from Fake Data file")
@@ -60,7 +61,7 @@ def _get_fake_resume_data(resume_id: str) -> Optional[dict]:
         logger.error(f"{log_info_msg}: Invalid resume ID: {resume_id}")
         return None
     
-    fake_resume_file_path = f"/Users/gridavyv/HRVibe/hrvibe_core/test_data/fake_resume_{resume_id}.json"
+    fake_resume_file_path = _project_root / "test_data" / f"fake_resume_{resume_id}.json"
     with open(fake_resume_file_path, "r", encoding="utf-8") as f:
         resume_data = json.load(f)
     logger.debug(f"{log_info_msg}: Resume data fetched from Fake Data file")

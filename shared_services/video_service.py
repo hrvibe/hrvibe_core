@@ -52,8 +52,8 @@ def _validate_incoming_video(file_size: int, duration: int, max_duration: int = 
     # Check file size (50MB limit)
     if file_size:
         file_size_mb = file_size / (1024 * 1024)
-        if file_size_mb > 50:
-            return f"Видео больше максимального размера 50 MB. Пожалуйста, запишите кружочек, он точно меньше 50 MB."
+        if file_size_mb > 20:
+            return f"Видео больше максимального размера 20 MB. Пожалуйста, запишите кружочек, он точно меньше 20 MB."
     
     return ""
 
