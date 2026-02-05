@@ -435,7 +435,7 @@ async def ask_to_record_video_command(update: Update, context: ContextTypes.DEFA
 
     # ----- CHECK MUST CONDITIONS are met and STOP if not -----
 
-    if not is_boolean_field_true_in_db(db_model=Managers, record_id=bot_user_id, field_name="privacy_policy_confirmed"):
+    if not is_boolean_field_true_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="privacy_policy_confirmed"):
         logger.debug(f"{log_prefix}: user {bot_user_id} doesn't have privacy policy confirmed.")
         await send_message_to_user(update, context, text=MISSING_PRIVACY_POLICY_CONFIRMATION_TEXT)
         return
