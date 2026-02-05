@@ -632,7 +632,7 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
 
     if sending_video_confirmation_user_decision == "yes":
 
-        await send_message_to_user(update, context, text="Отлично, сохраняем видео...")
+        await send_message_to_user(update, context, text="⏳ Отлично, сохраняем видео...")
 
         update_column_value_by_field(
             db_model=Vacancies,
@@ -755,7 +755,7 @@ async def select_vacancy_command(update: Update, context: ContextTypes.DEFAULT_T
         await ask_single_question_from_update(
             update=update,
             context=context,
-            question_text="Выберите c какой из вакансий вы хотите работать.",
+            question_text="🎯 Выберите c какой из вакансий вы хотите работать.",
             options=answer_options,
             callback_prefix="vacancy_select",
         )
