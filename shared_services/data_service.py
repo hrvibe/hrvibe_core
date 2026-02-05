@@ -410,7 +410,7 @@ def get_resume_recommendation_text_from_resume_records(negotiation_id: str) -> s
         raise ValueError(f"{log_info_msg}: vacancy_id not found for negotiation {negotiation_id}")
     
     vacancy_name = get_column_value_in_db(db_model=Vacancies, record_id=vacancy_id, field_name="name")
-    first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_applicant_first_name")
+    first_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_first_name")
     last_name = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="hh_last_name")
     final_score = get_column_value_in_db(db_model=Negotiations, record_id=negotiation_id, field_name="resume_ai_score")
     
