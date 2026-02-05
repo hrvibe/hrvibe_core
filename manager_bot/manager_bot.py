@@ -632,7 +632,7 @@ async def handle_answer_confrim_sending_video(update: Update, context: ContextTy
 
     if sending_video_confirmation_user_decision == "yes":
 
-        await send_message_to_user(update, context, text="⏳ Отлично, сохраняем видео...")
+        await send_message_to_user(update, context, text="⏳ Сохраняем видео...")
 
         update_column_value_by_field(
             db_model=Vacancies,
@@ -1848,7 +1848,7 @@ async def handle_answer_invite_to_interview_button(update: Update, context: Cont
             
             update_record_in_db(db_model=Negotiations, record_id=negotiation_id, updates={"resume_accepted": True, "resume_decision_time": current_time})
 
-            user_msg = f"Отлично, мы вам и кандидату, чтобы договоритьсяо времени интервью."
+            user_msg = f"✅ Свяжемся с вами, чтобы назначить время интервью."
 
             admin_message = (
                 f"📞 Пользователь {manager_id}.\n"
